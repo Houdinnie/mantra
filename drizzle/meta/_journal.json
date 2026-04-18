@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1776501414232,
+      "tag": "0000_jazzy_patch",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1776501553575,
+      "tag": "0001_whole_sister_grimm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1776501851684,
+      "tag": "0002_windy_xorn",
+      "breakpoints": true
+    }
+  ]
+}
