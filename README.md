@@ -1,192 +1,209 @@
 # Mantra — AI Agent Platform
 
-An action-oriented AI agent platform powered by Anthropic Claude that breaks down complex goals into concrete, executable steps and delivers verifiable results.
+<p align="center">
+  <img src="https://img.shields.io/badge/69-Agents-cyan" alt="69 AI Agents" />
+  <img src="https://img.shields.io/badge/27-Tools-blue" alt="27 Integrated Tools" />
+  <img src="https://img.shields.io/badge/21-Repos-green" alt="21 Integrated Repositories" />
+  <img src="https://img.shields.io/badge/License-MIT-purple" alt="License" />
+</p>
 
-## Tech Stack
+<p align="center">
+  <strong>Action-oriented AI agent platform that turns ideas into executable plans.</strong>
+</p>
 
-| Layer     | Technology                                                    |
-| --------- | -------------------------------------------------------------- |
-| Frontend  | React 19, TypeScript, Tailwind CSS v4, Radix UI, Recharts    |
-| Backend   | Express, tRPC, Drizzle ORM, MySQL                              |
-| Auth      | OAuth 2.0 (Manus platform), JWT (HS256) via `jose`            |
-| LLM       | Anthropic Claude via `@anthropic-ai/sdk`                      |
-| Build     | Vite 7, esbuild, pnpm                                          |
-| Testing   | Vitest                                                        |
+---
 
-## Project Structure
+## 🌐 Live Deployment
+
+| Service | URL |
+|---------|-----|
+| **Landing Page** | https://houdinnie.zo.space |
+| **Chat App** | https://houdinnie.zo.space/chat |
+| **API Service** | https://mantra-api-houdinnie.zocomputer.io |
+
+---
+
+## ✨ Features
+
+### 🤖 69 AI Agents
+
+Powered by [Everything Claude Code](https://github.com/ComposioHQ/awesome-claude-skills):
+
+| Agent | Purpose |
+|-------|---------|
+| `planner` | Implementation planning for complex features |
+| `code-reviewer` | Code quality and maintainability review |
+| `security-reviewer` | Vulnerability detection (OWASP Top 10) |
+| `tdd-guide` | Test-driven development with 80%+ coverage |
+| `database-reviewer` | PostgreSQL/Supabase optimization |
+| `build-error-resolver` | Fix build/type errors across languages |
+| `deep-research` | Multi-hop research with citations |
+| `trading-agent` | Market analysis and trading signals |
+| `marketing-agent` | Campaign creation and content generation |
+| + 60 more specialized agents |
+
+### 🔧 27 Integrated Tools
+
+From [Composio](https://github.com/ComposioHQ/awesome-claude-skills):
+- **Web Search** — SearxNG-powered search engine
+- **Browser Automation** — Real Chrome control, form filling, screenshots
+- **Code Execution** — Python, JavaScript, Bash, Go in sandboxed environment
+- **Notes** — Markdown documents with tags and search
+- **Memory** — Cross-session persistent memory
+- **Reminders** — Push notifications to your devices
+- **File Vault** — Content-addressed file storage
+- **AI Company** — Autonomous economic agents with wallets (Franklin/ClawRouter)
+- + 19 more tools
+
+### 📦 21 Integrated Repositories
+
+| Source | Features Added |
+|--------|---------------|
+| [Everything Claude Code](https://github.com/ComposioHQ/awesome-claude-skills) | 69 agents, 183 skills, 79 commands |
+| [Claude-Mem](https://github.com/thedotmack/claude-mem) | Memory search, observations, session history |
+| [Composio](https://github.com/ComposioHQ/awesome-claude-skills) | 832 app automation skills |
+| [AgenticSeek](https://github.com/Fosowl/agenticSeek) | Voice-enabled web browsing, autonomous coding |
+| [AIPex](https://github.com/AIPexNL/APEX) | Chrome extension browser automation |
+| [AutoMate](https://github.com/yuruotong1/autoMate) | Personal data NAS, 31 SaaS integrations |
+| [ClawCompany](https://github.com/wlstead/ClawCompany) | AI company framework with roles |
+| [OpenJarvis](https://github.com/open-jarvis/OpenJarvis) | Local LLM, morning digest, deep research |
+| [OpenManus](https://github.com/henryalps/OpenManus) | Multi-agent coordination |
+| [Claw3D](https://github.com/team-astronauts/Claw3D) | 3D virtual office for AI agents |
+| [ClawDeck](https://github.com/win4r/ClawDeck) | Kanban-style task management |
+| [ClawTeam](https://github.com/HKUDS/ClawTeam) | Multi-agent swarm orchestration |
+| [ClawSwarm](https://github.com/1Panel-dev/ClawSwarm) | Group chat for agents |
+| [MemOS](https://github.com/MemTensor/memos-openclaw-plugin) | Lifecycle memory plugin |
+| [Franklin](https://github.com/BlockRunAI/franklin) | AI agent with USDC wallet |
+| [Awesome OpenClaw Money Maker](https://github.com/BlockRunAI/awesome-OpenClaw-Money-Maker) | Revenue strategies, trading bots |
+| + 5 more |
+
+---
+
+## 🚀 Quick Start
+
+### Web Interface
+1. Visit https://houdinnie.zo.space/chat
+2. Start typing your request
+
+### Example Commands
+```
+"Plan a feature for me"
+"Review my code for security vulnerabilities"  
+"Search for latest AI news"
+"Help me with my marketing campaign"
+"Research this topic deeply"
+"Create a trading strategy for BTC"
+```
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Mantra Frontend                       │
+│   Landing Page → Chat Interface → Tools Panel               │
+└────────────────────────────┬────────────────────────────────┘
+                             │ fetch()
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Mantra API Service                         │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐│
+│   │  Sessions   │  │  Agents    │  │      Tools         ││
+│   │  (SQLite)   │  │  (69)      │  │      (27)           ││
+│   └─────────────┘  └─────────────┘  └─────────────────────┘│
+└────────────────────────────┬────────────────────────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+        ┌──────────┐  ┌──────────┐  ┌──────────┐
+        │   LLM   │  │  SearxNG │  │ Browser │
+        │ (Claude)│  │  (Web)  │  │ (Chrome)│
+        └──────────┘  └──────────┘  └──────────┘
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 mantra/
 ├── client/                  # React frontend (Vite)
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Landing.tsx      # Marketing landing page
-│   │   │   ├── Chat.tsx        # AI chat interface
-│   │   │   ├── Dashboard.tsx   # Session history + stats
-│   │   │   └── ComponentShowcase.tsx
-│   │   ├── components/
-│   │   │   ├── AIChatBox.tsx       # Chat message renderer
-│   │   │   ├── DashboardLayout.tsx
-│   │   │   ├── NeuralNetwork.tsx  # 60fps canvas animation
-│   │   │   └── ui/                 # 40+ Radix UI primitives
-│   │   ├── _core/hooks/useAuth.ts
-│   │   ├── contexts/ThemeContext.tsx
-│   │   └── lib/trpc.ts, utils.ts
-│   └── public/__manus__/       # Manus debug collector
-├── server/                  # Express + tRPC backend
-│   ├── _core/
-│   │   ├── sdk.ts          # OAuth + session management
-│   │   ├── llm.ts          # Claude LLM integration
-│   │   ├── map.ts          # Intent decomposition logic
-│   │   ├── auth.ts         # Auth middleware
-│   │   ├── trpc.ts         # tRPC setup
-│   │   └── voiceTranscription.ts
-│   ├── routers/
-│   │   └── chat.ts         # Chat tRPC procedures
-│   ├── storage.ts
-│   └── db.ts               # Drizzle DB wrapper
-├── drizzle/                 # Database schema + migrations
-│   ├── schema.ts           # chat_sessions, chat_messages, users
-│   ├── meta/               # Snapshot + journal files
-│   └── migrations/
-├── shared/                  # Shared types + constants
-│   ├── _core/errors.ts
-│   ├── const.ts
-│   └── types.ts
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-└── vitest.config.ts
+│   └── src/
+│       ├── pages/
+│       │   ├── Landing.tsx     # Marketing landing page
+│       │   └── Chat.tsx         # AI chat interface
+│       └── components/
+│           └── ToolsPanel.tsx    # Agent & tool showcase
+├── server/                  # Express backend
+│   └── _core/
+│       ├── agents.ts           # 69 AI agent definitions
+│       ├── tools.ts            # 27 integrated tools
+│       ├── memory.ts           # Claude-Mem integration
+│       ├── webSearch.ts        # SearxNG search
+│       ├── browserAuto.ts      # Browser automation
+│       ├── codeExec.ts         # Code execution
+│       ├── personalData.ts     # Notes, memory, reminders
+│       ├── moneyMaking.ts      # Franklin/ClawRouter
+│       ├── aiCompany.ts        # ClawCompany framework
+│       ├── autonomous.ts       # Autonomous agent mode
+│       └── sandbox.ts          # Cloud sandbox agent
+├── drizzle/                 # Database schema
+├── agent_systems/           # Copied reference repos
+│   ├── everything-claude-code/
+│   ├── claude-mem/
+│   ├── composio_skills/
+│   ├── agenticseek/
+│   ├── ai-manus/
+│   ├── openmanus/
+│   └── ... (15 more)
+└── README.md
 ```
 
-## Features
+---
 
-- **Intent Decomposition** — Claude LLM breaks down user goals into structured, actionable steps
-- **Real-time Chat** — Streaming AI responses with markdown rendering via Streamdown
-- **Persistent Sessions** — MySQL-backed chat history with full-text context retention
-- **Neural Visualization** — 60fps canvas animation (green pulses, breathing nodes)
-- **OAuth Authentication** — Manus platform SSO with JWT session cookies
-- **Protected Routes** — Auth guards on `/app` (Chat) and `/app/dashboard`
-- **Dark Futuristic UI** — Fraunces (display) + Inter (body) typography, cyan accent palette
-- **Dashboard** — Session history, usage statistics, message counts
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- pnpm 9+ (`npm install -g pnpm`)
-- MySQL 8+ (or MariaDB 10.5+)
-- [Manus platform](https://manus.im) account (for OAuth)
+## 🔧 Configuration
 
 ### Environment Variables
 
-Create a `.env` file at the project root:
-
 ```env
-# Manus OAuth (from your Manus developer settings)
-OAUTH_SERVER_URL=https://your-manus-server.com
-APP_ID=your_app_id
-COOKIE_SECRET=your_random_256bit_secret
+# LLM Provider (Manus/Forge compatible)
+FORGE_API_URL=https://forge.manus.im/v1/chat/completions
+FORGE_API_KEY=your_api_key
 
-# Claude LLM
+# Optional: Custom LLM
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Database
-DATABASE_URL=mysql://user:password@localhost:3306/mantra
+# Web Search (SearxNG)
+SEARXNG_BASE_URL=http://searxng:8080
 
-# Optional
-NODE_ENV=development
+# Browser Automation
+CHROME_BINARY=/usr/bin/chromium
 ```
 
-### Installation
+---
 
-```bash
-pnpm install
-```
+## 🎯 Use Cases
 
-### Database Setup
+| Use Case | Best Agent | Command Example |
+|----------|------------|-----------------|
+| Plan a feature | `planner` | "Plan a REST API with auth" |
+| Code review | `code-reviewer` | "Review my React component" |
+| Security scan | `security-reviewer` | "Scan for SQL injection risks" |
+| Write tests | `tdd-guide` | "Add tests for the auth module" |
+| Research | `deep-research` | "Research LLM benchmarks 2026" |
+| Trading | `trading-agent` | "Analyze BTC trend for Q2 2026" |
+| Marketing | `marketing-agent` | "Create campaign for new product" |
+| Browser tasks | Browser tools | "Fill out this form", "Take screenshot" |
 
-```bash
-# Push schema to MySQL (creates tables)
-pnpm db:push
-```
+---
 
-### Development
+## 📜 License
 
-```bash
-pnpm dev
-```
+MIT — See [LICENSE](LICENSE) for details.
 
-Opens at `http://localhost:5173` (Vite dev server). The Express API runs on the same port via Vite's proxy.
+---
 
-### Production Build
-
-```bash
-pnpm build
-pnpm start
-```
-
-### Testing
-
-```bash
-pnpm test        # Run all tests (Vitest)
-pnpm check       # TypeScript type check
-pnpm format      # Prettier format
-```
-
-## Database Schema
-
-### `users`
-| Column        | Type         | Notes               |
-| ------------- | ------------ | ------------------- |
-| openId        | varchar(255) | PK, OAuth subject   |
-| name          | varchar(255) | nullable           |
-| email         | varchar(255) | nullable           |
-| loginMethod   | varchar(50)  | nullable           |
-| lastSignedIn  | datetime     |                    |
-| createdAt     | datetime     | default now()      |
-
-### `chat_sessions`
-| Column     | Type         | Notes                  |
-| ---------- | ------------ | ---------------------- |
-| id         | varchar(255) | PK (nanoid)           |
-| userId     | varchar(255) | FK → users, indexed   |
-| title      | varchar(255) | nullable              |
-| createdAt  | datetime     |                       |
-| updatedAt  | datetime     | indexed               |
-
-### `chat_messages`
-| Column     | Type         | Notes                  |
-| ---------- | ------------ | ---------------------- |
-| id         | int          | PK, auto-increment    |
-| sessionId  | varchar(255) | FK → sessions, indexed |
-| role       | enum         | 'user' / 'assistant'  |
-| content    | text         |                       |
-| createdAt  | datetime     |                       |
-
-## API Design
-
-All API routes are tRPC procedures under `/trpc`:
-
-| Procedure            | Type   | Description                          |
-| -------------------- | ------ | ------------------------------------ |
-| `chat.sendMessage`   | mutate | Send message, returns AI response    |
-| `chat.getSessions`   | query  | List all sessions for current user   |
-| `chat.getSession`    | query  | Get session + messages by ID         |
-| `chat.deleteSession` | mutate | Delete a session and its messages    |
-
-## Key Dependencies
-
-- **`@anthropic-ai/sdk`** — Claude LLM API client
-- **`streamdown`** — Markdown streaming renderer for chat
-- **`drizzle-orm`** — Type-safe SQL query builder
-- **`jose`** — JWT signing/verification for sessions
-- **`wouter`** — Lightweight React router (with patch applied)
-- **`framer-motion`** — Animations throughout the UI
-- **`recharts`** — Charts on the dashboard
-- **`radix-ui`** — 40+ unstyled, accessible UI primitives
-
-## License
-
-MIT
+<p align="center">
+  <strong>Built with ❤️ using React, Express, SQLite, and Claude</strong>
+</p>
