@@ -4,10 +4,11 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Plus, Trash2, Menu } from "lucide-react";
+import { Loader2, Send, Plus, Trash2, Menu, Wrench } from "lucide-react";
 import { Streamdown } from "streamdown";
 import NeuralNetwork from "@/components/NeuralNetwork";
 import { useLocation } from "wouter";
+import ToolsPanel from "@/components/ToolsPanel";
 
 const THINKING_STEPS = [
   "Parsing your request...",
@@ -25,6 +26,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showTools, setShowTools] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const createSessionMutation = trpc.chat.createSession.useMutation();
@@ -189,7 +191,17 @@ export default function Chat() {
           <div className="text-sm text-slate-400">
             {user?.name && <span>{user.name}</span>}
           </div>
+          <Button
+            onClick={() => setShowTools(!showTools)}
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-white ml-4"
+          >
+            <Wrench className="w-4 h-4 mr-1" /> Tools
+          </Button>
         </div>
+
+        {showTools && <ToolsPanel onClose={() => setShowTools(false)} />)}
 
         <ScrollArea ref={scrollRef} className="flex-1 px-6 py-8">
           <div className="max-w-3xl mx-auto space-y-6">

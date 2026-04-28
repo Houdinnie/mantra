@@ -2,7 +2,29 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { ArrowRight, Zap, Brain, Sparkles, MessageSquare } from "lucide-react";
+import { 
+  ArrowRight, Zap, Brain, Sparkles, MessageSquare, 
+  Search, Code, Globe, FileText, MemoryStick, ListTodo,
+  Box, Building2, DollarSign, Users, Cpu
+} from "lucide-react";
+
+const FEATURES = [
+  { icon: Brain, title: "Intent Decomposition", desc: "AI breaks down complex goals into actionable steps", color: "cyan" },
+  { icon: Zap, title: "Real-Time Processing", desc: "Instant responses powered by Claude LLM", color: "blue" },
+  { icon: MessageSquare, title: "Persistent History", desc: "Your conversations are saved and retrievable", color: "green" },
+  { icon: Sparkles, title: "Neural Visualization", desc: "Watch AI thinking with animated neural networks", color: "purple" },
+  { icon: Search, title: "Web Search", desc: "Search with DuckDuckGo, Bing, Google, SearxNG", color: "cyan" },
+  { icon: Code, title: "Code Execution", desc: "Run Python, JS, Bash, Go, Java, C++ in sandbox", color: "blue" },
+  { icon: Globe, title: "Browser Automation", desc: "Navigate, click, type, screenshot", color: "purple" },
+  { icon: FileText, title: "Notes & Tags", desc: "Create notes with tags and full-text search", color: "green" },
+  { icon: MemoryStick, title: "Cross-Session Memory", desc: "Store key-value context across sessions", color: "yellow" },
+  { icon: ListTodo, title: "Kanban Tasks", desc: "ClawDeck-style project & task management", color: "orange" },
+  { icon: Box, title: "Cloud Sandbox", desc: "AI Manus-style isolated Docker execution", color: "red" },
+  { icon: Building2, title: "AI Company", desc: "ClawCompany 38 roles, 6 templates", color: "pink" },
+  { icon: DollarSign, title: "Smart Payments", desc: "Franklin x402 micropayment routing", color: "emerald" },
+  { icon: Users, title: "Agent Swarm", desc: "ClawSwarm multi-agent group messaging", color: "violet" },
+  { icon: Cpu, title: "Learning System", desc: "ClawCode ECAP/TECAP experience capture", color: "amber" },
+];
 
 export default function Landing() {
   const [, navigate] = useLocation();
@@ -30,6 +52,7 @@ export default function Landing() {
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <span className="text-sm text-slate-400 hidden sm:block">15+ Tools</span>
             {isAuthenticated ? (
               <Button onClick={() => navigate("/app")} className="bg-cyan-600 hover:bg-cyan-700">
                 Open App
@@ -48,7 +71,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-6 px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-full">
-              <span className="text-sm text-cyan-400 font-medium">AI-Powered Intent Decomposition</span>
+              <span className="text-sm text-cyan-400 font-medium">AI Agent Platform with 20+ Integrations</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -59,7 +82,9 @@ export default function Landing() {
             </h1>
 
             <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-8">
-              Mantra is an action-oriented AI agent that breaks down your goals into concrete steps and delivers verifiable results. Every interaction produces something tangible.
+              Mantra is an action-oriented AI agent that breaks down your goals into concrete steps. 
+              Access 15+ tools for search, code execution, browser automation, notes, memory, 
+              kanban tasks, cloud sandbox, AI company, payments, and agent swarms.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -76,46 +101,36 @@ export default function Landing() {
                 className="border-slate-700 text-slate-300 hover:bg-slate-800 h-12 px-8"
                 onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
               >
-                Learn More
+                View All Tools
               </Button>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Feature Grid */}
-          <div className="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Brain,
-                title: "Intent Decomposition",
-                description: "AI breaks down complex goals into actionable steps",
-              },
-              {
-                icon: Zap,
-                title: "Real-Time Processing",
-                description: "Instant responses powered by Claude LLM",
-              },
-              {
-                icon: MessageSquare,
-                title: "Persistent History",
-                description: "Your conversations are saved and retrievable",
-              },
-              {
-                icon: Sparkles,
-                title: "Neural Visualization",
-                description: "Watch AI thinking with animated neural networks",
-              },
-            ].map((feature, idx) => {
+      {/* Features Grid */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+            Everything You Need
+          </h2>
+          <p className="text-slate-400 text-center mb-12 max-w-2xl mx-auto">
+            15+ integrated tools from the best AI agent projects
+          </p>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {FEATURES.map((feature, idx) => {
               const Icon = feature.icon;
               return (
                 <div
                   key={idx}
-                  className="p-6 bg-slate-800/30 border border-slate-700 rounded-lg hover:border-cyan-500/50 transition-colors group"
+                  className="p-4 bg-slate-800/30 border border-slate-700 rounded-lg hover:border-cyan-500/50 transition-colors group"
                 >
-                  <div className="mb-4 p-3 bg-slate-700/50 rounded-lg w-fit group-hover:bg-cyan-500/20 transition-colors">
-                    <Icon className="w-6 h-6 text-cyan-400" />
+                  <div className={`mb-3 p-2 bg-${feature.color}-500/20 rounded-lg w-fit`}>
+                    <Icon className={`w-5 h-5 text-${feature.color}-400`} />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-slate-400 text-sm">{feature.description}</p>
+                  <h3 className="text-sm font-semibold mb-1">{feature.title}</h3>
+                  <p className="text-xs text-slate-400">{feature.desc}</p>
                 </div>
               );
             })}
@@ -134,18 +149,15 @@ export default function Landing() {
             {[
               {
                 title: "Plan Projects",
-                description:
-                  "Describe your project idea and get a structured breakdown with timelines and deliverables.",
+                description: "Describe your project idea and get a structured breakdown with timelines and deliverables.",
               },
               {
                 title: "Solve Problems",
-                description:
-                  "Present a challenge and receive step-by-step solutions with actionable recommendations.",
+                description: "Present a challenge and receive step-by-step solutions with actionable recommendations.",
               },
               {
-                title: "Generate Ideas",
-                description:
-                  "Brainstorm with an AI partner that turns vague concepts into concrete, executable plans.",
+                title: "Build Software",
+                description: "Execute code, browse web, manage tasks - all through natural conversation.",
               },
             ].map((item, idx) => (
               <div key={idx} className="p-8 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-lg">
@@ -177,7 +189,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-slate-800 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center text-slate-500 text-sm">
-          <p>© 2026 Mantra. Built with precision and care.</p>
+          <p>© 2026 Mantra. Powered by Claude. Integrated with 20+ AI agent projects.</p>
         </div>
       </footer>
     </div>
