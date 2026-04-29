@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import {
   createChatSession,
   getChatSession,
@@ -11,22 +11,105 @@ import {
   incrementMessageCount,
   deleteChatSession,
 } from "../db";
-import { invokeLLM } from "../_core/llm";
+import { streamClaude, callClaude } from "../_core/anthropic";
+import { routeMessage } from "../_core/agentRouter";
 import { nanoid } from "nanoid";
+import type { Request, Response } from "express";
 
-const SYSTEM_PROMPT = `You are Mantra, an action-oriented AI agent that decomposes user intent into concrete, executable steps. Your goal is to understand what the user wants and provide a clear, structured plan with verifiable deliverables.
+// ─────────────────────────────────────────────────────────────
+// SSE streaming endpoint (registered on Express, not tRPC)
+// Called by the frontend via POST /api/chat/stream
+// ─────────────────────────────────────────────────────────────
 
-When a user makes a request:
-1. Parse their intent carefully
-2. Break it down into logical, sequential steps
-3. Identify the deliverable or outcome
-4. Provide clear, actionable guidance
+export async function registerChatStream(app: import("express").Express) {
+  app.post("/api/chat/stream", async (req: Request, res: Response) => {
+    const { sessionId, message, userId } = req.body as {
+      sessionId: string;
+      message: string;
+      userId: number;
+    };
 
-Be concise, direct, and focus on actionable outcomes. Mirror the user's language and tone. Think of yourself as a hands-on partner who turns vague goals into concrete plans.`;
+    if (!sessionId || !message || !userId) {
+      res.status(400).json({ error: "sessionId, message, and userId are required" });
+      return;
+    }
+
+    const session = await getChatSession(sessionId);
+    if (!session || session.userId !== userId) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
+    // Persist user message
+    await addChatMessage(sessionId, "user", message);
+    await incrementMessageCount(sessionId);
+
+    // Fetch history excluding the just-persisted message
+    const history = await getSessionMessages(sessionId, 200);
+    const prior = history.slice(0, -1).map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    // Route through agent router
+    const routing = routeMessage(message, prior);
+
+    // SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    // First event: routing metadata so the client can show persona / skill badges
+    res.write(
+      `data: ${JSON.stringify({
+        type: "routing",
+        persona: (routing.persona as any).name ?? "Mantra",
+        personaEmoji: (routing.persona as any).emoji ?? "🤖",
+        skill: routing.skill?.name ?? null,
+        tier: routing.tier ?? null,
+      })}\n\n`
+    );
+
+    let fullReply = "";
+
+    try {
+      const stream = streamClaude({
+        system: routing.systemPrompt,
+        messages: [
+          ...prior,
+          { role: "user", content: routing.userMessage },
+        ],
+      });
+
+      for await (const chunk of stream) {
+        fullReply += chunk;
+        res.write(`data: ${JSON.stringify({ type: "delta", text: chunk })}\n\n`);
+      }
+
+      await addChatMessage(sessionId, "assistant", fullReply);
+      await incrementMessageCount(sessionId);
+      await updateSessionMetadata(sessionId, message.substring(0, 80), fullReply);
+
+      res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+    } catch (error) {
+      console.error("[Chat Stream] Error:", error);
+      const errMsg = error instanceof Error ? error.message : "Unknown error";
+      res.write(`data: ${JSON.stringify({ type: "error", message: errMsg })}\n\n`);
+    } finally {
+      res.end();
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// tRPC router
+// ─────────────────────────────────────────────────────────────
 
 export const chatRouter = router({
   /**
-   * Send a message and get an AI response
+   * Non-streaming fallback (used in contexts where SSE is unavailable)
    */
   sendMessage: protectedProcedure
     .input(
@@ -36,71 +119,40 @@ export const chatRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
       const { sessionId, message } = input;
 
-      // Verify session exists and belongs to user
       const session = await getChatSession(sessionId);
-      if (!session) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Session not found",
-        });
-      }
-
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have access to this session",
-        });
-      }
+      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+      if (session.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
 
       try {
-        // Add user message to database
         await addChatMessage(sessionId, "user", message);
         await incrementMessageCount(sessionId);
 
-        // Get conversation history
-        const messages = await getSessionMessages(sessionId);
+        const history = await getSessionMessages(sessionId, 200);
+        const prior = history.slice(0, -1).map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
 
-        // Build LLM context
-        const llmMessages = [
-          { role: "system" as const, content: SYSTEM_PROMPT },
-          ...messages.map((m) => ({
-            role: m.role as "user" | "assistant",
-            content: m.content,
-          })),
-          { role: "user" as const, content: message },
-        ];
+        const routing = routeMessage(message, prior);
 
-        // Call LLM
-        const response = await invokeLLM({
-          messages: llmMessages as any,
+        const reply = await callClaude({
+          system: routing.systemPrompt,
+          messages: [...prior, { role: "user", content: routing.userMessage }],
         });
 
-        const assistantReply =
-          typeof response.choices?.[0]?.message?.content === "string"
-            ? response.choices[0].message.content
-            : "I encountered an error processing your request.";
-
-        // Add assistant response to database
-        if (typeof assistantReply === "string") {
-          await addChatMessage(sessionId, "assistant", assistantReply);
-          await incrementMessageCount(sessionId);
-        }
-
-        // Update session metadata
-        const preview = message.substring(0, 80);
-        if (typeof assistantReply === "string") {
-          await updateSessionMetadata(sessionId, preview, assistantReply);
-        }
+        await addChatMessage(sessionId, "assistant", reply);
+        await incrementMessageCount(sessionId);
+        await updateSessionMetadata(sessionId, message.substring(0, 80), reply);
 
         return {
           sessionId,
-          reply: assistantReply,
+          reply,
+          persona: (routing.persona as any).name ?? "Mantra",
+          skill: routing.skill?.name ?? null,
           success: true,
         };
       } catch (error) {
@@ -112,114 +164,54 @@ export const chatRouter = router({
       }
     }),
 
-  /**
-   * Create a new chat session
-   */
   createSession: protectedProcedure.mutation(async ({ ctx }) => {
-    if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
+    if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
     const sessionId = `s_${nanoid(12)}_${Date.now()}`;
 
     try {
       await createChatSession(ctx.user.id, sessionId);
-      return { sessionId, success: true };
+      return { sessionId, userId: ctx.user.id, success: true };
     } catch (error) {
       console.error("[Chat] Failed to create session:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create session",
-      });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create session" });
     }
   }),
 
-  /**
-   * Get all messages for a session
-   */
   getMessages: protectedProcedure
-    .input(
-      z.object({
-        sessionId: z.string(),
-        limit: z.number().default(200),
-      })
-    )
+    .input(z.object({ sessionId: z.string(), limit: z.number().default(200) }))
     .query(async ({ ctx, input }) => {
-      if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
       const session = await getChatSession(input.sessionId);
-      if (!session) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Session not found",
-        });
-      }
+      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+      if (session.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
 
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have access to this session",
-        });
-      }
-
-      const messages = await getSessionMessages(input.sessionId, input.limit);
-      return messages;
+      return getSessionMessages(input.sessionId, input.limit);
     }),
 
-  /**
-   * Get all sessions for the current user
-   */
   getSessions: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().default(50),
-      })
-    )
+    .input(z.object({ limit: z.number().default(50) }))
     .query(async ({ ctx, input }) => {
-      if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
-      const sessions = await getUserSessions(ctx.user.id, input.limit);
-      return sessions;
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      return getUserSessions(ctx.user.id, input.limit);
     }),
 
-  /**
-   * Delete a session
-   */
   deleteSession: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
       const session = await getChatSession(input.sessionId);
-      if (!session) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Session not found",
-        });
-      }
-
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have access to this session",
-        });
-      }
+      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+      if (session.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
 
       try {
         await deleteChatSession(input.sessionId);
         return { success: true };
       } catch (error) {
         console.error("[Chat] Failed to delete session:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete session",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete session" });
       }
     }),
 });
