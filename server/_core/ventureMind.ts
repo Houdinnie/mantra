@@ -76,6 +76,13 @@ export const VENTUREMIND_SKILLS = [
     description: "Apply minimalist principles to evaluate any business decision",
     principle: "Is this the simplest approach? Is this reversible?",
     invoke: "/minimalist-review"
+  },
+  {
+    id: "milliondollaridea",
+    name: "Million Dollar Idea",
+    description: "Full board ideation session: generates 3 validated business ideas ranked by opportunity, with unit economics, market signal, and a clear first action for each",
+    principle: "The best idea is the one you can validate this week",
+    invoke: "/milliondollaridea"
   }
 ];
 
@@ -91,7 +98,7 @@ export const MINIMALIST_PRINCIPLES = [
 ];
 
 export const SKILL_GATE_RULES = {
-  highImpact: ["minimalist-review", "validate-idea"],
+  highImpact: ["minimalist-review", "validate-idea", "milliondollaridea"],
   mediumImpact: ["processize", "pricing", "grow-sustainably"],
   lowImpact: ["mvp", "first-customers"]
 };

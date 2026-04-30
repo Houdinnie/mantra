@@ -1,43 +1,27 @@
-import { eq, desc, asc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, chatSessions, chatMessages } from "../drizzle/schema";
+import { InsertUser, users, chatSessions, chatMessages, userMemory, userNotes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+    try { _db = drizzle(process.env.DATABASE_URL); }
+    catch (error) { console.warn("[Database] Failed to connect:", error); _db = null; }
   }
   return _db;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
+  if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
+  if (!db) { console.warn("[Database] Cannot upsert user: database not available"); return; }
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
-
     const textFields = ["name", "email", "loginMethod"] as const;
     type TextField = (typeof textFields)[number];
-
     const assignNullable = (field: TextField) => {
       const value = user[field];
       if (value === undefined) return;
@@ -45,71 +29,34 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values[field] = normalized;
       updateSet[field] = normalized;
     };
-
     textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+    if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
+    if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
+    else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
+    if (!values.lastSignedIn) values.lastSignedIn = new Date();
+    if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
+    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  } catch (error) { console.error("[Database] Failed to upsert user:", error); throw error; }
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-/**
- * Chat session queries
- */
+// ── Chat Sessions ──────────────────────────────────────────────────
+
 export async function createChatSession(userId: number, sessionId: string, title?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(chatSessions).values({
-    userId,
-    sessionId,
-    title: title || "New Chat",
-    messageCount: 0,
-  });
-  
-  return result;
+  return db.insert(chatSessions).values({ userId, sessionId, title: title || "New Chat", messageCount: 0 });
 }
 
 export async function getChatSession(sessionId: string) {
   const db = await getDb();
   if (!db) return undefined;
-  
   const result = await db.select().from(chatSessions).where(eq(chatSessions.sessionId, sessionId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
@@ -117,78 +64,164 @@ export async function getChatSession(sessionId: string) {
 export async function getUserSessions(userId: number, limit = 50) {
   const db = await getDb();
   if (!db) return [];
-  
-  const result = await db
-    .select()
-    .from(chatSessions)
-    .where(eq(chatSessions.userId, userId))
-    .orderBy(desc(chatSessions.updatedAt))
-    .limit(limit);
-  
-  return result;
+  return db.select().from(chatSessions).where(eq(chatSessions.userId, userId)).orderBy(desc(chatSessions.updatedAt)).limit(limit);
 }
 
 export async function updateSessionMetadata(sessionId: string, title: string, lastMessage: string) {
   const db = await getDb();
   if (!db) return;
-  
-  await db
-    .update(chatSessions)
-    .set({
-      title,
-      lastMessage: lastMessage.substring(0, 240),
-      updatedAt: new Date(),
-    })
-    .where(eq(chatSessions.sessionId, sessionId));
+  await db.update(chatSessions).set({ title, lastMessage: lastMessage.substring(0, 240), updatedAt: new Date() }).where(eq(chatSessions.sessionId, sessionId));
 }
 
 export async function incrementMessageCount(sessionId: string) {
   const db = await getDb();
   if (!db) return;
-  
-  await db
-    .update(chatSessions)
-    .set({
-      messageCount: sql`messageCount + 1`,
-      updatedAt: new Date(),
-    })
-    .where(eq(chatSessions.sessionId, sessionId));
+  await db.update(chatSessions).set({ messageCount: sql`messageCount + 1`, updatedAt: new Date() }).where(eq(chatSessions.sessionId, sessionId));
 }
 
 export async function deleteChatSession(sessionId: string) {
   const db = await getDb();
   if (!db) return;
-  
   await db.delete(chatMessages).where(eq(chatMessages.sessionId, sessionId));
   await db.delete(chatSessions).where(eq(chatSessions.sessionId, sessionId));
 }
 
-/**
- * Chat message queries
- */
 export async function addChatMessage(sessionId: string, role: "user" | "assistant", content: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(chatMessages).values({
-    sessionId,
-    role,
-    content,
-  });
-  
-  return result;
+  return db.insert(chatMessages).values({ sessionId, role, content });
 }
 
 export async function getSessionMessages(sessionId: string, limit = 200) {
   const db = await getDb();
   if (!db) return [];
-  
-  const result = await db
-    .select()
-    .from(chatMessages)
-    .where(eq(chatMessages.sessionId, sessionId))
-    .orderBy(asc(chatMessages.createdAt))
-    .limit(limit);
-  
+  return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
+}
+
+export async function getUserStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
+  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
+  const totalSessions = sessions.length;
+  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
+  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
+  return { totalSessions, totalMessages, lastActive };
+}
+
+// ── Memory ────────────────────────────────────────────────────────
+
+export async function getMemory(userId: number, key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(userMemory).where(and(eq(userMemory.userId, userId), eq(userMemory.key, key))).limit(1);
+  return result.length > 0 ? result[0].value : null;
+}
+
+export async function setMemory(userId: number, key: string, value: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(userMemory).values({ userId, key, value }).onDuplicateKeyUpdate({ set: { value, updatedAt: new Date() } });
+}
+
+export async function getAllMemory(userId: number): Promise<Array<{ key: string; value: string }>> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ key: userMemory.key, value: userMemory.value }).from(userMemory).where(eq(userMemory.userId, userId));
+}
+
+export async function deleteMemory(userId: number, key: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(userMemory).where(and(eq(userMemory.userId, userId), eq(userMemory.key, key)));
+}
+
+// ── Notes ─────────────────────────────────────────────────────────
+
+export async function createNote(userId: number, title: string, content: string, tags: string[] = []) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(userNotes).values({ userId, title, content, tags: tags.join(",") });
   return result;
+}
+
+export async function getNotes(userId: number, search?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (search) {
+    return db.select().from(userNotes).where(and(eq(userNotes.userId, userId), like(userNotes.title, `%${search}%`))).orderBy(desc(userNotes.updatedAt)).limit(50);
+  }
+  return db.select().from(userNotes).where(eq(userNotes.userId, userId)).orderBy(desc(userNotes.updatedAt)).limit(50);
+}
+
+export async function updateNote(noteId: number, userId: number, updates: { title?: string; content?: string; tags?: string[]; pinned?: boolean }) {
+  const db = await getDb();
+  if (!db) return;
+  const set: Record<string, unknown> = {};
+  if (updates.title) set.title = updates.title;
+  if (updates.content) set.content = updates.content;
+  if (updates.tags) set.tags = updates.tags.join(",");
+  if (updates.pinned !== undefined) set.pinned = updates.pinned;
+  await db.update(userNotes).set(set).where(and(eq(userNotes.id, noteId), eq(userNotes.userId, userId)));
+}
+
+export async function deleteNote(noteId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(userNotes).where(and(eq(userNotes.id, noteId), eq(userNotes.userId, userId)));
+}
+
+// ── Sandbox Sessions ──────────────────────────────────────────
+
+import { sandboxSessions } from "../drizzle/schema";
+
+export async function createSandboxSession(data: {
+  userId: number;
+  sessionId: string;
+  sandboxId: string;
+  containerId?: string;
+  mode: string;
+  workdir: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(sandboxSessions).values({
+    userId: data.userId,
+    sessionId: data.sessionId,
+    sandboxId: data.sandboxId,
+    containerId: data.containerId,
+    mode: data.mode,
+    status: "running",
+    workdir: data.workdir,
+    taskCount: 0,
+  });
+}
+
+export async function getSandboxSession(sessionId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(sandboxSessions)
+    .where(eq(sandboxSessions.sessionId, sessionId)).limit(1);
+  return result[0] ?? undefined;
+}
+
+export async function getUserSandboxes(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(sandboxSessions)
+    .where(eq(sandboxSessions.userId, userId))
+    .orderBy(desc(sandboxSessions.lastActiveAt))
+    .limit(20);
+}
+
+export async function updateSandboxStatus(
+  sandboxId: string,
+  status: "running" | "stopped" | "error",
+  lastTask?: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  const set: Record<string, unknown> = { status, lastActiveAt: new Date() };
+  if (lastTask) { set.lastTask = lastTask; set.taskCount = sql`taskCount + 1`; }
+  await db.update(sandboxSessions).set(set)
+    .where(eq(sandboxSessions.sandboxId, sandboxId));
 }

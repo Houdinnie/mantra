@@ -8,6 +8,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
+import Notes from "./pages/Notes";
+import BrainPage from "./pages/Brain";
+import Tasks from "./pages/Tasks";
+import SandboxPage from "./pages/Sandbox";
 
 function Router() {
   return (
@@ -21,6 +25,26 @@ function Router() {
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/notes">
+        <ProtectedRoute>
+          <Notes />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/brain">
+        <ProtectedRoute>
+          <BrainPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/tasks">
+        <ProtectedRoute>
+          <Tasks />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/sandbox">
+        <ProtectedRoute>
+          <SandboxPage />
         </ProtectedRoute>
       </Route>
       <Route path="/404" component={NotFound} />

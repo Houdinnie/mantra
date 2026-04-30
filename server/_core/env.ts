@@ -8,4 +8,6 @@ export const ENV = {
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+  openclawUrl: process.env.OPENCLAW_URL ?? "http://localhost:18789",
+  openclawToken: process.env.OPENCLAW_TOKEN ?? "",
 };

@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Plus, Trash2, Menu, Zap } from "lucide-react";
+import { Loader2, Send, Plus, Trash2, Menu, Zap, Brain, FileText, LayoutDashboard, Bot, Terminal } from "lucide-react";
 import { Streamdown } from "streamdown";
 import NeuralNetwork from "@/components/NeuralNetwork";
 import { useLocation } from "wouter";
@@ -18,6 +18,13 @@ const THINKING_STEPS = [
 ];
 
 const SKILL_COMMANDS = [
+  { cmd: "/task",          label: "Dispatch Task 🦞" },
+  { cmd: "/deepread",      label: "DeepRead URL 📥" },
+  { cmd: "/sandbox",       label: "Open Sandbox 🖥️" },
+  { cmd: "/milliondollaridea", label: "Million Dollar Idea 🥇" },
+  { cmd: "/board", label: "Board Session" },
+  { cmd: "/brain", label: "Brain Status 🧠" },
+  { cmd: "/recall", label: "Brain Recall 🧠" },
   { cmd: "/find-community", label: "Find Community" },
   { cmd: "/validate-idea", label: "Validate Idea" },
   { cmd: "/processize", label: "Processize" },
@@ -28,6 +35,11 @@ const SKILL_COMMANDS = [
   { cmd: "/grow-sustainably", label: "Grow Sustainably" },
   { cmd: "/company-values", label: "Company Values" },
   { cmd: "/marketing-plan", label: "Marketing Plan" },
+  { cmd: "/marketing", label: "Franklin: Marketing" },
+  { cmd: "/trading", label: "Franklin: Trading" },
+  { cmd: "/content", label: "Franklin: Content" },
+  { cmd: "/search", label: "Web Search" },
+  { cmd: "/digest", label: "Morning Digest" },
 ];
 
 type Message = {
@@ -186,6 +198,9 @@ export default function Chat() {
                 };
                 return updated;
               });
+            } else if (event.type === "redirect") {
+              if (event.task) sessionStorage.setItem("mantra_sandbox_task", event.task as string);
+              setTimeout(() => navigate(event.url as string), 1200);
             } else if (event.type === "delta" && event.text) {
               accumulated += event.text;
               setMessages((prev) => {
@@ -302,6 +317,30 @@ export default function Chat() {
             ))}
           </div>
         </ScrollArea>
+
+        {/* Nav links */}
+        <div className="p-3 border-t border-slate-800 grid grid-cols-5 gap-1">
+          <button onClick={() => navigate("/dashboard")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-white">
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span className="text-xs">Dash</span>
+          </button>
+          <button onClick={() => navigate("/notes")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-white">
+            <FileText className="w-3.5 h-3.5" />
+            <span className="text-xs">Notes</span>
+          </button>
+          <button onClick={() => navigate("/tasks")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-cyan-400">
+            <Zap className="w-3.5 h-3.5" />
+            <span className="text-xs">Tasks</span>
+          </button>
+          <button onClick={() => navigate("/sandbox")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-green-400">
+            <Terminal className="w-3.5 h-3.5" />
+            <span className="text-xs">Box</span>
+          </button>
+          <button onClick={() => navigate("/brain")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-violet-400">
+            <Brain className="w-3.5 h-3.5" />
+            <span className="text-xs">Brain</span>
+          </button>
+        </div>
 
         {/* Skills panel in sidebar */}
         <div className="p-4 border-t border-slate-800">

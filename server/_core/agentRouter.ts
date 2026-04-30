@@ -1,9 +1,8 @@
 /**
- * Mantra Agent Router
+ * Mantra Agent Router — v2
  *
- * Detects the active persona from conversation context, routes slash-command
- * skill invocations, and assembles the full system prompt that gets sent to
- * Claude on every turn.
+ * Detects persona, routes slash commands, detects board/franklin invocations,
+ * and assembles the full system prompt for every Claude call.
  */
 
 import { VENTUREMIND_SKILLS, MINIMALIST_PRINCIPLES, SKILL_GATE_RULES } from "./ventureMind";
@@ -13,14 +12,8 @@ import { VENTUREMIND_SKILLS, MINIMALIST_PRINCIPLES, SKILL_GATE_RULES } from "./v
 // ─────────────────────────────────────────────────────────────
 
 export type PersonaId =
-  | "ideator"
-  | "tax-strategist"
-  | "entity-lawyer"
-  | "compliance-officer"
-  | "nomad-navigator"
-  | "luxury-concierge"
-  | "health-wellness"
-  | "wealth-advisor"
+  | "ideator" | "tax-strategist" | "entity-lawyer" | "compliance-officer"
+  | "nomad-navigator" | "luxury-concierge" | "health-wellness" | "wealth-advisor"
   | "default";
 
 type Persona = {
@@ -33,119 +26,163 @@ type Persona = {
 
 const PERSONAS: Persona[] = [
   {
-    id: "ideator",
-    name: "Ideator",
-    emoji: "💡",
+    id: "ideator", name: "Ideator", emoji: "💡",
     triggers: ["startup", "business idea", "validate", "community", "mvp", "launch", "product", "saas", "app idea"],
-    systemAddendum: `You are operating as the Ideator persona. Your job is to help founders validate, processize and launch ideas using the Minimalist Entrepreneur methodology. Always push the user toward community validation before building. Reference the 7 pillars when relevant. Encourage shipping the smallest useful thing first.`,
+    systemAddendum: `You are the Ideator persona. Help founders validate, processize and launch ideas using the Minimalist Entrepreneur methodology. Push community validation before building. Reference the 7 pillars when relevant.`,
   },
   {
-    id: "tax-strategist",
-    name: "Tax Strategist",
-    emoji: "💰",
+    id: "tax-strategist", name: "Tax Strategist", emoji: "💰",
     triggers: ["tax", "nhr", "portugal", "uae", "singapore", "residency", "holding company", "treaty", "offshore", "taxation"],
-    systemAddendum: `You are operating as the Tax Strategist persona. You specialise in international tax optimisation, NHR programs, UAE Freezone structures, Singapore incentives, and tax treaty analysis. Always clarify that you provide strategic frameworks, not formal legal or tax advice, and recommend consulting a qualified advisor for implementation.`,
+    systemAddendum: `You are the Tax Strategist persona. Specialise in international tax optimisation, NHR programs, UAE Freezone, Singapore incentives, and tax treaty analysis. Provide strategic frameworks; recommend consulting a qualified advisor for implementation.`,
   },
   {
-    id: "entity-lawyer",
-    name: "Entity Lawyer",
-    emoji: "⚖️",
+    id: "entity-lawyer", name: "Entity Lawyer", emoji: "⚖️",
     triggers: ["llc", "company", "entity", "structure", "incorporate", "legal", "liability", "shareholder", "contract"],
-    systemAddendum: `You are operating as the Entity Lawyer persona. You help founders choose and structure legal entities — LLCs, C-Corps, Freezone entities, holding structures. Explain trade-offs clearly. Always note that final legal decisions require a qualified attorney.`,
+    systemAddendum: `You are the Entity Lawyer persona. Help founders choose and structure legal entities. Explain trade-offs clearly. Always note that final legal decisions require a qualified attorney.`,
   },
   {
-    id: "compliance-officer",
-    name: "Compliance Officer",
-    emoji: "🔐",
+    id: "compliance-officer", name: "Compliance Officer", emoji: "🔐",
     triggers: ["gdpr", "soc2", "compliance", "audit", "data privacy", "regulation", "kyc", "aml"],
-    systemAddendum: `You are operating as the Compliance Officer persona. You guide teams through regulatory requirements: GDPR, SOC 2, KYC/AML, and substance requirements for offshore structures. Be precise, cite relevant frameworks, and flag any areas requiring specialist legal review.`,
+    systemAddendum: `You are the Compliance Officer persona. Guide teams through GDPR, SOC 2, KYC/AML, and substance requirements. Be precise, cite relevant frameworks, flag areas requiring specialist legal review.`,
   },
   {
-    id: "nomad-navigator",
-    name: "Nomad Navigator",
-    emoji: "🗺️",
+    id: "nomad-navigator", name: "Nomad Navigator", emoji: "🗺️",
     triggers: ["visa", "d7", "digital nomad", "travel", "nomad", "presence days", "183 days", "golden visa", "relocation"],
-    systemAddendum: `You are operating as the Nomad Navigator persona. You help digital nomads and entrepreneurs optimise visa strategies, track physical presence requirements, plan compliant relocations, and navigate golden visa programs. Be practical, specific, and flag official sources to verify.`,
+    systemAddendum: `You are the Nomad Navigator persona. Help digital nomads optimise visa strategies, track physical presence requirements, plan compliant relocations, and navigate golden visa programs.`,
   },
   {
-    id: "luxury-concierge",
-    name: "Luxury Concierge",
-    emoji: "✈️",
+    id: "luxury-concierge", name: "Luxury Concierge", emoji: "✈️",
     triggers: ["luxury", "first class", "private jet", "hotel", "upgrade", "vip", "concierge", "premium", "points", "miles"],
-    systemAddendum: `You are operating as the Luxury Concierge persona. You help high-net-worth individuals access premium travel, hotel programs, empty-leg flights, and exclusive experiences. Be specific about loyalty programs, upgrade strategies, and cost-saving tactics within the premium tier.`,
+    systemAddendum: `You are the Luxury Concierge persona. Help access premium travel, hotel programs, empty-leg flights, and exclusive experiences. Be specific about loyalty programs, upgrade strategies, and cost-saving tactics.`,
   },
   {
-    id: "health-wellness",
-    name: "Wellness Director",
-    emoji: "🏥",
+    id: "health-wellness", name: "Wellness Director", emoji: "🏥",
     triggers: ["health", "fitness", "wellness", "longevity", "biohacking", "sleep", "nutrition", "clinic", "insurance"],
-    systemAddendum: `You are operating as the Wellness Director persona. You guide founders and nomads on health optimisation, international health insurance, longevity protocols, and finding quality clinics abroad. Always recommend consulting qualified medical professionals for specific health decisions.`,
+    systemAddendum: `You are the Wellness Director persona. Guide founders on health optimisation, international health insurance, longevity protocols, and finding quality clinics abroad. Always recommend consulting qualified medical professionals.`,
   },
   {
-    id: "wealth-advisor",
-    name: "Wealth Architect",
-    emoji: "📈",
+    id: "wealth-advisor", name: "Wealth Architect", emoji: "📈",
     triggers: ["invest", "portfolio", "crypto", "stocks", "etf", "fund", "wealth", "asset", "banking", "dividend"],
-    systemAddendum: `You are operating as the Wealth Architect persona. You help entrepreneurs build investment strategies, select banking structures, evaluate crypto positions, and construct resilient portfolios. Always note that you provide frameworks and context — not personalised financial advice — and encourage working with a licensed advisor.`,
+    systemAddendum: `You are the Wealth Architect persona. Help build investment strategies, select banking structures, evaluate crypto positions. Provide frameworks and context — not personalised financial advice.`,
   },
 ];
 
 // ─────────────────────────────────────────────────────────────
-// Skill routing
+// Route types
+// ─────────────────────────────────────────────────────────────
+
+export type RouteType =
+  | "standard"
+  | "skill"
+  | "board_session"
+  | "marketing"
+  | "trading"
+  | "content"
+  | "web_search"
+  | "morning_digest"
+  | "milliondollaridea"
+  | "brain_status"
+  | "brain_recall"
+  | "task_dispatch"
+  | "deep_read"
+  | "sandbox_redirect";
+
+// ─────────────────────────────────────────────────────────────
+// Slash command detection
 // ─────────────────────────────────────────────────────────────
 
 type SkillMatch = {
   skill: (typeof VENTUREMIND_SKILLS)[number] | null;
   tier: "high" | "medium" | "low" | null;
   cleanedMessage: string;
+  routeType: RouteType;
+  franklinType?: "marketing" | "trading" | "content";
+  boardRoles?: string[];
+};
+
+const SPECIAL_COMMANDS: Record<string, RouteType> = {
+  "/board": "board_session",
+  "/ceo": "board_session",
+  "/search": "web_search",
+  "/research": "web_search",
+  "/digest": "morning_digest",
+  "/morning": "morning_digest",
+  "/milliondollaridea": "milliondollaridea",
+  "/mdi": "milliondollaridea",
+  "/brain": "brain_status",
+  "/neuro": "brain_status",
+  "/recall": "brain_recall",
+  "/remember": "brain_recall",
+  "/task": "task_dispatch",
+  "/do": "task_dispatch",
+  "/automate": "task_dispatch",
+  "/deepread": "deep_read",
+  "/read": "deep_read",
+  "/ingest": "deep_read",
+  "/sandbox": "sandbox_redirect",
+  "/box": "sandbox_redirect",
+  "/execute": "sandbox_redirect",
+};
+
+const FRANKLIN_COMMANDS: Record<string, "marketing" | "trading" | "content"> = {
+  "/marketing": "marketing",
+  "/trading": "trading",
+  "/content": "content",
+  "/franklin": "marketing",
 };
 
 export function detectSkillCommand(message: string): SkillMatch {
   const trimmed = message.trim();
+  const lower = trimmed.toLowerCase();
+  const firstWord = lower.split(/\s/)[0];
 
+  // Check special commands
+  if (SPECIAL_COMMANDS[firstWord]) {
+    return {
+      skill: null, tier: null,
+      cleanedMessage: trimmed.slice(firstWord.length).trim() || trimmed,
+      routeType: SPECIAL_COMMANDS[firstWord],
+    };
+  }
+
+  // Check Franklin commands
+  if (FRANKLIN_COMMANDS[firstWord]) {
+    return {
+      skill: null, tier: null,
+      cleanedMessage: trimmed.slice(firstWord.length).trim() || trimmed,
+      routeType: FRANKLIN_COMMANDS[firstWord] as RouteType,
+      franklinType: FRANKLIN_COMMANDS[firstWord],
+    };
+  }
+
+  // Check VentureMind skill commands
   for (const skill of VENTUREMIND_SKILLS) {
-    if (trimmed.toLowerCase().startsWith(skill.invoke)) {
-      const tier = SKILL_GATE_RULES.highImpact.includes(skill.id)
-        ? "high"
-        : SKILL_GATE_RULES.mediumImpact.includes(skill.id)
-        ? "medium"
-        : "low";
-
+    if (lower.startsWith(skill.invoke)) {
+      const tier = SKILL_GATE_RULES.highImpact.includes(skill.id) ? "high"
+        : SKILL_GATE_RULES.mediumImpact.includes(skill.id) ? "medium" : "low";
       return {
-        skill,
-        tier,
-        // Strip the command prefix so the remainder is the user's context
+        skill, tier,
         cleanedMessage: trimmed.slice(skill.invoke.length).trim() || `Help me with: ${skill.name}`,
+        routeType: "skill",
       };
     }
   }
 
-  return { skill: null, tier: null, cleanedMessage: message };
+  return { skill: null, tier: null, cleanedMessage: message, routeType: "standard" };
 }
 
 // ─────────────────────────────────────────────────────────────
 // Persona detection
 // ─────────────────────────────────────────────────────────────
 
-export function detectPersona(
-  message: string,
-  history: Array<{ role: string; content: string }>
-): Persona {
-  // Check the last few messages for context (current message first)
+export function detectPersona(message: string, history: Array<{ role: string; content: string }>): Persona {
   const contextWindow = [message, ...history.slice(-4).map((m) => m.content)].join(" ").toLowerCase();
-
   let bestMatch: Persona | null = null;
   let bestScore = 0;
 
   for (const persona of PERSONAS) {
-    const score = persona.triggers.reduce(
-      (acc, trigger) => acc + (contextWindow.includes(trigger) ? 1 : 0),
-      0
-    );
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = persona;
-    }
+    const score = persona.triggers.reduce((acc, t) => acc + (contextWindow.includes(t) ? 1 : 0), 0);
+    if (score > bestScore) { bestScore = score; bestMatch = persona; }
   }
 
   return bestMatch ?? ({ id: "default", name: "Mantra", emoji: "🤖" } as unknown as Persona);
@@ -167,54 +204,45 @@ Always:
 - Mirror the user's language and energy
 - Avoid filler — every sentence should move the user forward`;
 
-type RoutingResult = {
+export type RoutingResult = {
   systemPrompt: string;
   userMessage: string;
-  persona: Persona;
+  persona: Persona | { id: "default"; name: string; emoji: string };
   skill: SkillMatch["skill"];
   tier: SkillMatch["tier"];
+  routeType: RouteType;
+  franklinType?: "marketing" | "trading" | "content";
+  useWebSearch: boolean;
 };
 
-/**
- * Main routing function. Takes the raw user message + conversation history,
- * returns the assembled system prompt and normalised user message to send to Claude.
- */
-export function routeMessage(
-  rawMessage: string,
-  history: Array<{ role: string; content: string }>
-): RoutingResult {
-  // 1. Detect skill command
+export function routeMessage(rawMessage: string, history: Array<{ role: string; content: string }>): RoutingResult {
   const skillMatch = detectSkillCommand(rawMessage);
-
-  // 2. Detect persona (use cleaned message so /commands don't confuse it)
   const persona = detectPersona(skillMatch.cleanedMessage, history);
 
-  // 3. Build system prompt layers
+  // Detect if this is a research-heavy question even without /search command
+  const needsSearch = skillMatch.routeType === "web_search"
+    || /\b(latest|current|today|this week|news|recent|2024|2025|2026|market cap|stock price|exchange rate)\b/i.test(rawMessage);
+
   const parts: string[] = [BASE_SYSTEM];
 
-  // Persona addendum
   if (persona.id !== "default") {
-    parts.push(`\n---\n## Active Persona: ${persona.emoji} ${persona.name}\n${persona.systemAddendum}`);
+    parts.push(`\n---\n## Active Persona: ${(persona as Persona).emoji} ${persona.name}\n${(persona as Persona).systemAddendum}`);
   }
 
-  // Skill addendum
   if (skillMatch.skill) {
-    const depthInstruction =
-      skillMatch.tier === "high"
-        ? "Provide an in-depth, structured analysis. Use headers, numbered steps, and concrete examples. This is a high-impact decision."
-        : skillMatch.tier === "medium"
-        ? "Provide a thorough but focused response. Use practical steps and clear trade-offs."
-        : "Provide a concise, actionable response. Keep it practical and brief.";
-
-    parts.push(
-      `\n---\n## Active Skill: ${skillMatch.skill.name}\nPrinciple: "${skillMatch.skill.principle}"\nDescription: ${skillMatch.skill.description}\n\nDepth instruction: ${depthInstruction}`
-    );
+    const depth = skillMatch.tier === "high"
+      ? "Provide an in-depth, structured analysis with headers, numbered steps, and concrete examples. This is a high-impact decision."
+      : skillMatch.tier === "medium"
+      ? "Provide a thorough but focused response with practical steps and clear trade-offs."
+      : "Provide a concise, actionable response.";
+    parts.push(`\n---\n## Active Skill: ${skillMatch.skill.name}\nPrinciple: "${skillMatch.skill.principle}"\n${skillMatch.skill.description}\n\nDepth: ${depth}`);
   }
 
-  // Available skills reminder (brief)
-  parts.push(
-    `\n---\nAvailable slash commands the user can invoke at any time:\n${VENTUREMIND_SKILLS.map((s) => `• ${s.invoke} — ${s.name}`).join("\n")}`
-  );
+  if (needsSearch) {
+    parts.push(`\n---\nThis query benefits from current information. Use your web search capability to find up-to-date data before responding. Cite sources inline.`);
+  }
+
+  parts.push(`\n---\nAvailable slash commands:\n${VENTUREMIND_SKILLS.map((s) => `• ${s.invoke} — ${s.name}`).join("\n")}\n• /board — Convene C-suite (CEO, CFO, CTO, COO, CMO, CSO)\n• /search — Web search mode\n• /marketing — Franklin marketing agent\n• /trading — Franklin trading research\n• /content — Franklin content creator\n• /digest — Morning briefing`);
 
   return {
     systemPrompt: parts.join("\n"),
@@ -222,5 +250,8 @@ export function routeMessage(
     persona,
     skill: skillMatch.skill,
     tier: skillMatch.tier,
+    routeType: skillMatch.routeType,
+    franklinType: skillMatch.franklinType,
+    useWebSearch: needsSearch,
   };
 }
