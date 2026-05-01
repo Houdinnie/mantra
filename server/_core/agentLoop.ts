@@ -20,7 +20,6 @@ import {
   writeFileInSandbox,
   readFileInSandbox,
   listFilesInSandbox,
-  browserFetchInSandbox,
   type SandboxInfo,
 } from "./dockerSandbox";
 
@@ -92,15 +91,30 @@ const TOOLS = [
     },
   },
   {
-    name: "browser_fetch",
-    description: "Fetch a URL and extract its text content. Use for: reading documentation, scraping data, checking APIs, downloading content to process.",
+    name: "browser",
+    description: "Control a real Chromium browser via Playwright. Use for: scraping JavaScript-heavy sites, filling forms, clicking buttons, taking screenshots, navigating SPAs, logging in. Write a Python script using playwright.sync_api and run it.",
     input_schema: {
       type: "object",
       properties: {
-        url: { type: "string", description: "Full URL to fetch including https://" },
-        description: { type: "string", description: "What you are looking for on this page" },
+        script: {
+          type: "string",
+          description: "Python script using playwright.sync_api. Must be complete and runnable. Example:\nfrom playwright.sync_api import sync_playwright\nwith sync_playwright() as p:\n    browser = p.chromium.launch(headless=True)\n    page = browser.new_page()\n    page.goto('https://example.com')\n    print(page.title())\n    browser.close()"
+        },
+        description: { type: "string", description: "What this browser script does" },
       },
-      required: ["url", "description"],
+      required: ["script", "description"],
+    },
+  },
+  {
+    name: "upload_file",
+    description: "Reference a file that was uploaded by the user into the workspace. Use this to acknowledge and process user-uploaded files.",
+    input_schema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "The filename in /workspace that was uploaded" },
+        action: { type: "string", description: "What to do with this file" },
+      },
+      required: ["path", "action"],
     },
   },
   {
@@ -129,6 +143,8 @@ const AGENT_SYSTEM = `You are Mantra's autonomous execution agent — a Manus-li
 
 You have access to a full Ubuntu Linux environment with Python 3, Node.js, npm, pip, curl, wget, and git pre-installed. You can install additional packages freely.
 
+You also have a FULL HEADLESS CHROMIUM BROWSER via Playwright. For any web task — scraping, form filling, screenshots, SPAs — use the browser tool with a Python playwright script.
+
 Your working directory is /workspace. All files you create will be there.
 
 Operating principles:
@@ -142,6 +158,12 @@ When writing code:
 - Always test it by running it
 - Handle errors and edge cases
 - Leave clear comments
+
+When using the browser:
+- Always use headless=True
+- Use page.wait_for_load_state('networkidle') for SPAs
+- Take screenshots with page.screenshot(path='screenshot.png') to verify
+- Save scraped data to files
 
 When errors occur:
 - Read the error message carefully
@@ -325,17 +347,45 @@ export async function* runAgentLoop(
             break;
           }
 
-          case "browser_fetch": {
-            const url = toolCall.input.url as string;
-            yield { type: "status", text: `🌐 Fetching ${url.slice(0, 60)}…` };
-            const { content, statusCode } = await browserFetchInSandbox(sandbox, url);
-            toolOutput = `HTTP ${statusCode}\n\n${content}`;
-            isError = statusCode === 0;
-            yield { type: "tool_result", tool: "browser_fetch", output: toolOutput.slice(0, 3000), error: isError };
+          case "browser": {
+            const script = toolCall.input.script as string;
+            yield { type: "status", text: `🌐 ${toolCall.input.description ?? "Running browser script..."}` };
+            // Write script to temp file and execute
+            await writeFileInSandbox(sandbox, ".browser_tmp.py", script);
+            const result = await execInSandbox(sandbox, "cd /workspace && python3 .browser_tmp.py 2>&1");
+            toolOutput = [
+              result.stdout && `OUTPUT:\n${result.stdout}`,
+              result.stderr && `STDERR:\n${result.stderr}`,
+              `EXIT CODE: ${result.exitCode}`,
+              result.timedOut ? "TIMED OUT after 30s" : "",
+            ].filter(Boolean).join("\n");
+            isError = result.exitCode !== 0;
+            // Check if a screenshot was saved
+            const screenshotCheck = await execInSandbox(sandbox, "ls /workspace/*.png 2>/dev/null | head -5");
+            if (screenshotCheck.stdout.trim()) {
+              const screenshots = screenshotCheck.stdout.trim().split("\n").map(p => p.replace("/workspace/", ""));
+              screenshots.forEach(s => { if (!createdFiles.includes(s)) createdFiles.push(s); });
+              yield { type: "file_created", path: screenshots[screenshots.length - 1] };
+            }
+            yield { type: "tool_result", tool: "browser", output: toolOutput.slice(0, 3000), exitCode: result.exitCode, error: isError };
             break;
           }
 
-          case "task_complete": {
+          case "upload_file": {
+            const path = toolCall.input.path as string;
+            const action = toolCall.input.action as string;
+            // Verify file exists
+            const checkResult = await execInSandbox(sandbox, `ls -la /workspace/${path} 2>/dev/null && echo EXISTS || echo MISSING`);
+            if (checkResult.stdout.includes("EXISTS")) {
+              toolOutput = `File /workspace/${path} is available. ${action}`;
+              yield { type: "file_read", path, content: `User-uploaded file ready: ${path}` };
+            } else {
+              toolOutput = `File ${path} not found in workspace. Available files: $(ls /workspace 2>/dev/null)`;
+              isError = true;
+            }
+            yield { type: "tool_result", tool: "upload_file", output: toolOutput };
+            break;
+          }
             const summary = toolCall.input.summary as string;
             const files = (toolCall.input.files as string[]) || createdFiles;
             yield { type: "task_complete", output: summary, files };

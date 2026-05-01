@@ -296,3 +296,25 @@ export const notificationRouter = router({
       return { ok };
     }),
 });
+
+// ─────────────────────────────────────────────────────────────
+// Collaboration router
+// ─────────────────────────────────────────────────────────────
+
+import { getRoomPresence, getActiveRooms } from "../_core/collabServer";
+
+export const collabRouter = router({
+  /** Get who is currently in a session */
+  presence: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      return getRoomPresence(input.sessionId);
+    }),
+
+  /** Get all active collaborative rooms (admin/owner only) */
+  activeRooms: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+    return getActiveRooms();
+  }),
+});

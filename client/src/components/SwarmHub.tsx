@@ -365,6 +365,9 @@ export default function SwarmHub() {
         <PresenceGauge />
 
         <div className="flex items-center gap-2">
+          <button onClick={() => navigate("/channels")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-cyan-300">
+            # Channels
+          </button>
           <button onClick={() => navigate("/notes")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
             <FileText className="w-3.5 h-3.5" /> Notes
           </button>

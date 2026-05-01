@@ -225,3 +225,71 @@ export async function updateSandboxStatus(
   await db.update(sandboxSessions).set(set)
     .where(eq(sandboxSessions.sandboxId, sandboxId));
 }
+
+// ── Agent Channels ────────────────────────────────────────────
+
+import { agentChannels } from "../drizzle/schema";
+
+export async function createChannel(data: {
+  userId: number;
+  name: string;
+  description?: string;
+  emoji?: string;
+  personaId?: string;
+  systemPromptOverride?: string;
+  modelOverride?: string;
+  color?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(agentChannels).values({
+    userId: data.userId,
+    name: data.name,
+    description: data.description,
+    emoji: data.emoji ?? "💬",
+    personaId: data.personaId ?? "default",
+    systemPromptOverride: data.systemPromptOverride,
+    modelOverride: data.modelOverride,
+    color: data.color ?? "#00f5ff",
+    messageCount: 0,
+    pinned: false,
+  });
+}
+
+export async function getUserChannels(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agentChannels)
+    .where(eq(agentChannels.userId, userId))
+    .orderBy(desc(agentChannels.updatedAt));
+}
+
+export async function getChannel(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(agentChannels)
+    .where(and(eq(agentChannels.id, id), eq(agentChannels.userId, userId))).limit(1);
+  return result[0];
+}
+
+export async function updateChannel(id: number, userId: number, updates: {
+  name?: string; description?: string; emoji?: string;
+  personaId?: string; systemPromptOverride?: string;
+  modelOverride?: string; color?: string; pinned?: boolean;
+  lastMessage?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  const set: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(updates)) if (v !== undefined) set[k] = v;
+  if (updates.lastMessage !== undefined) set.messageCount = sql`messageCount + 1`;
+  await db.update(agentChannels).set(set)
+    .where(and(eq(agentChannels.id, id), eq(agentChannels.userId, userId)));
+}
+
+export async function deleteChannel(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(agentChannels)
+    .where(and(eq(agentChannels.id, id), eq(agentChannels.userId, userId)));
+}

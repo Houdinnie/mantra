@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, Trash2, Pin, Save, X, Brain } from "lucide-react";
-import { Streamdown } from "streamdown";
+import { StreamingMath } from "@/components/MathRenderer";
 
 type Note = {
   id: number;
@@ -143,7 +143,7 @@ export default function Notes() {
               ) : (
                 <div className="max-w-3xl mx-auto prose prose-invert prose-slate">
                   {selectedNote.content ? (
-                    <Streamdown>{selectedNote.content}</Streamdown>
+                    <StreamingMath>{selectedNote.content}</StreamingMath>
                   ) : (
                     <p className="text-slate-500 italic">Empty note — click Edit to start writing.</p>
                   )}

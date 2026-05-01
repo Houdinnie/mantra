@@ -69,6 +69,78 @@ async function getOrCreateSandbox(
 // ─────────────────────────────────────────────────────────────
 
 export async function registerSandboxStream(app: Express) {
+  // ── File upload into sandbox workspace ───────────────────────
+  app.post("/api/sandbox/upload", async (req: Request, res: Response) => {
+    const sessionId = req.headers["x-session-id"] as string;
+    const userId    = parseInt(req.headers["x-user-id"] as string);
+    const filename  = decodeURIComponent(req.headers["x-filename"] as string ?? "upload");
+
+    if (!sessionId || !userId || !filename) {
+      res.status(400).json({ error: "x-session-id, x-user-id, x-filename headers required" });
+      return;
+    }
+
+    const sandbox = liveSandboxes.get(sessionId);
+    if (!sandbox) {
+      res.status(404).json({ error: "Sandbox not found — run a task first to initialise" });
+      return;
+    }
+
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    await new Promise<void>((resolve) => req.on("end", resolve));
+    const fileBuffer = Buffer.concat(chunks);
+
+    if (!fileBuffer.length) {
+      res.status(400).json({ error: "Empty file" });
+      return;
+    }
+
+    // Write into sandbox workspace
+    try {
+      const { writeFileInSandbox } = await import("../_core/dockerSandbox");
+      const safeFilename = filename.replace(/[^a-zA-Z0-9._\-]/g, "_");
+      await writeFileInSandbox(sandbox, safeFilename, fileBuffer.toString("utf8").replace(/\0/g, ""));
+
+      // For binary files, use base64 write via shell
+      if (fileBuffer.includes(0)) {
+        const { execInSandbox } = await import("../_core/dockerSandbox");
+        const b64 = fileBuffer.toString("base64");
+        await execInSandbox(sandbox, `echo '${b64}' | base64 -d > /workspace/${safeFilename}`);
+      }
+
+      res.json({ ok: true, path: safeFilename, size: fileBuffer.length });
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  });
+
+  // ── File download from sandbox workspace ─────────────────────
+  app.get("/api/sandbox/download", async (req: Request, res: Response) => {
+    const sessionId = req.query.sessionId as string;
+    const filePath  = req.query.path as string;
+
+    if (!sessionId || !filePath) {
+      res.status(400).json({ error: "sessionId and path required" });
+      return;
+    }
+
+    const sandbox = liveSandboxes.get(sessionId);
+    if (!sandbox) { res.status(404).json({ error: "Sandbox not found" }); return; }
+
+    try {
+      const { readFileInSandbox } = await import("../_core/dockerSandbox");
+      const content = await readFileInSandbox(sandbox, filePath);
+      const filename = filePath.split("/").pop() ?? "file";
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.send(content);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  });
+
+  // ── Agent task SSE ────────────────────────────────────────────
   app.post("/api/sandbox/run", async (req: Request, res: Response) => {
     const { task, sessionId, userId } = req.body as {
       task: string;

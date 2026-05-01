@@ -10,6 +10,9 @@ import { createContext } from "./context";
 import { registerChatStream } from "../routers/chat";
 import { registerVoiceUpload } from "../routers/voice";
 import { registerSandboxStream } from "../routers/sandbox";
+import { registerChannelStreams } from "../routers/channels";
+import { setupCollabServer } from "./collabServer";
+import { initEmbeddedRunner } from "../_core/embeddedRunner";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -42,6 +45,9 @@ async function startServer() {
   await registerChatStream(app);
   await registerVoiceUpload(app);
   await registerSandboxStream(app);
+  await registerChannelStreams(app);
+  setupCollabServer(server);
+  initEmbeddedRunner();
   // tRPC API
   app.use(
     "/api/trpc",

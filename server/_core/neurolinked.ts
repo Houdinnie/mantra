@@ -1,24 +1,25 @@
 /**
- * NeuroLinked Brain Bridge
+ * NeuroLinked Brain Bridge — with embedded fallback
  *
- * TypeScript HTTP client for the NeuroLinked V1.3 REST API running at
- * localhost:8000. Mantra calls this to:
- *   - Feed every conversation turn into the brain (learning)
- *   - Recall associated memories before Claude responds
- *   - Read brain state, insights, neuromodulators
- *   - Surface sleep-consolidation insights in the morning digest
+ * Tries the NeuroLinked REST API first (localhost:8000).
+ * If offline, falls back to the in-process embedded memory store.
+ * The embedded store uses TF-IDF recall and works with zero setup.
  *
- * The brain is OPTIONAL — if it's not running, all methods return
- * graceful nulls and Mantra continues normally.
+ * Callers never need to check which mode is active — the API is identical.
  */
 
 import { ENV } from "./env";
+import {
+  embeddedObserve, embeddedRecall, embeddedBuildContext,
+  embeddedGetLearned, embeddedGetStatus, embeddedGetInsights,
+  isEmbeddedMemoryOnline,
+} from "./embeddedMemory";
 
 const BRAIN_URL = process.env.NEUROLINKED_URL ?? "http://localhost:8000";
-const TIMEOUT_MS = 3000; // Don't block chat if brain is slow
+const TIMEOUT_MS = 2000; // Short timeout — fall back fast
 
 // ─────────────────────────────────────────────────────────────
-// Types mirrored from NeuroLinked server.py response shapes
+// Types
 // ─────────────────────────────────────────────────────────────
 
 export type BrainSummary = {
@@ -53,7 +54,7 @@ export type RecalledMemory = {
   source: string;
   tags: string[];
   score: number;
-  created_at: number;
+  created_at?: number;
 };
 
 export type BrainLearned = {
@@ -72,143 +73,164 @@ export type BrainInsight = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// HTTP helper with timeout + graceful failure
+// NeuroLinked HTTP helper — fails fast
 // ─────────────────────────────────────────────────────────────
 
-async function brainFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T | null> {
+let _neuroOnline: boolean | null = null;
+let _lastCheck = 0;
+const CHECK_INTERVAL = 30_000; // re-check every 30s
+
+async function checkNeuroOnline(): Promise<boolean> {
+  const now = Date.now();
+  if (_neuroOnline !== null && now - _lastCheck < CHECK_INTERVAL) return _neuroOnline;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    const res = await fetch(`${BRAIN_URL}/api/claude/status`, { signal: ctrl.signal });
+    _neuroOnline = res.ok;
+  } catch {
+    _neuroOnline = false;
+  }
+  _lastCheck = now;
+  return _neuroOnline;
+}
+
+async function neuroFetch<T>(path: string, options: RequestInit = {}): Promise<T | null> {
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     const res = await fetch(`${BRAIN_URL}${path}`, {
       ...options,
-      signal: controller.signal,
+      signal: ctrl.signal,
       headers: { "Content-Type": "application/json", ...(options.headers ?? {}) },
     });
-    clearTimeout(timer);
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
-    // Brain not running — fail silently
     return null;
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Public API
+// Public API — same interface regardless of mode
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Check if the brain is reachable.
- */
 export async function isBrainOnline(): Promise<boolean> {
-  const result = await brainFetch<{ status: string }>("/api/claude/status");
-  return result !== null;
+  return true; // embedded is always online
 }
 
-/**
- * Read the full brain state summary.
- */
+export async function isNeuroLinkedOnline(): Promise<boolean> {
+  return checkNeuroOnline();
+}
+
 export async function readBrainState(): Promise<BrainSummary | null> {
-  return brainFetch<BrainSummary>("/api/claude/summary");
+  if (await checkNeuroOnline()) {
+    const r = await neuroFetch<BrainSummary>("/api/claude/summary");
+    if (r) return r;
+  }
+  return embeddedGetStatus() as BrainSummary;
 }
 
-/**
- * Get brain insights (novelty, energy, patterns, cross-references).
- */
 export async function getBrainInsights(): Promise<BrainInsights | null> {
-  return brainFetch<BrainInsights>("/api/claude/insights");
+  if (await checkNeuroOnline()) {
+    const r = await neuroFetch<BrainInsights>("/api/claude/insights");
+    if (r) return r;
+  }
+  return embeddedGetInsights();
 }
 
-/**
- * Send a conversation turn to the brain for learning.
- * Called after every user message and assistant reply.
- */
 export async function sendToBrain(
   content: string,
   source: "user" | "assistant" | "mantra" = "mantra",
   type: "text" | "action" | "context" = "text"
 ): Promise<boolean> {
-  const result = await brainFetch<{ ok: boolean }>("/api/claude/observe", {
-    method: "POST",
-    body: JSON.stringify({ type, content, source }),
-  });
-  return result?.ok ?? false;
+  // Always store in embedded memory (cheap, instant)
+  embeddedObserve(content, source);
+
+  // Also try NeuroLinked if online (best effort, non-blocking)
+  if (await checkNeuroOnline()) {
+    neuroFetch<{ ok: boolean }>("/api/claude/observe", {
+      method: "POST",
+      body: JSON.stringify({ type, content, source }),
+    }).catch(() => {});
+  }
+
+  return true;
 }
 
-/**
- * Recall memories related to a query — used to inject context
- * into the Claude system prompt before responding.
- */
-export async function recallMemories(
-  query: string,
-  limit = 5
-): Promise<RecalledMemory[]> {
-  const encoded = encodeURIComponent(query);
-  const result = await brainFetch<{ results: RecalledMemory[] }>(
-    `/api/claude/recall?q=${encoded}&limit=${limit}`
-  );
-  return result?.results ?? [];
+export async function recallMemories(query: string, limit = 5): Promise<RecalledMemory[]> {
+  if (await checkNeuroOnline()) {
+    const encoded = encodeURIComponent(query);
+    const r = await neuroFetch<{ results: RecalledMemory[] }>(
+      `/api/claude/recall?q=${encoded}&limit=${limit}`
+    );
+    if (r?.results?.length) return r.results;
+  }
+  // Embedded fallback
+  return embeddedRecall(query, limit);
 }
 
-/**
- * Get what the brain has learned — top concepts and recent memories.
- */
 export async function getBrainLearned(): Promise<BrainLearned | null> {
-  return brainFetch<BrainLearned>("/api/claude/learned");
+  if (await checkNeuroOnline()) {
+    const r = await neuroFetch<BrainLearned>("/api/claude/learned");
+    if (r) return r;
+  }
+  return embeddedGetLearned();
 }
 
-/**
- * Save the current brain state to disk.
- */
 export async function saveBrain(): Promise<boolean> {
-  const result = await brainFetch<{ ok: boolean }>("/api/brain/save", { method: "POST" });
-  return result?.ok ?? false;
+  if (await checkNeuroOnline()) {
+    const r = await neuroFetch<{ ok: boolean }>("/api/brain/save", { method: "POST" });
+    if (r?.ok) return true;
+  }
+  return true; // embedded is in-process, no explicit save needed
 }
 
-/**
- * Get recent sleep-consolidation insights (for morning digest).
- */
 export async function getSleepInsights(limit = 10): Promise<BrainInsight[]> {
-  const result = await brainFetch<{ insights: BrainInsight[] }>(
-    `/api/brain/insights/recent?limit=${limit}`
-  );
-  return result?.insights ?? [];
+  if (await checkNeuroOnline()) {
+    const r = await neuroFetch<{ insights: BrainInsight[] }>(
+      `/api/brain/insights/recent?limit=${limit}`
+    );
+    if (r?.insights?.length) return r.insights;
+  }
+  return []; // embedded doesn't do sleep consolidation yet
 }
 
-/**
- * Build a memory context string to inject into Claude's system prompt.
- * Returns empty string if brain is offline or no relevant memories found.
- */
 export async function buildBrainMemoryContext(userMessage: string): Promise<string> {
-  const memories = await recallMemories(userMessage, 4);
-  if (!memories.length) return "";
-
-  const lines = memories
-    .filter((m) => m.score > 0.1) // Only surface meaningful matches
-    .slice(0, 3)
-    .map((m) => `- [${m.source}] ${m.text.substring(0, 200)}${m.text.length > 200 ? "…" : ""}`);
-
-  if (!lines.length) return "";
-
-  return `\n---\n## NeuroLinked Memory (associative recall)\nRelated memories your brain surfaced for this query:\n${lines.join("\n")}`;
+  if (await checkNeuroOnline()) {
+    const memories = await recallMemories(userMessage, 4);
+    if (memories.length) {
+      const lines = memories
+        .filter(m => m.score > 0.1)
+        .slice(0, 3)
+        .map(m => `- [${m.source}] ${m.text.substring(0, 200)}${m.text.length > 200 ? "…" : ""}`);
+      if (lines.length) {
+        return `\n---\n## NeuroLinked Memory (associative recall)\n${lines.join("\n")}`;
+      }
+    }
+  }
+  // Embedded fallback
+  return embeddedBuildContext(userMessage);
 }
 
-/**
- * Full brain context for the /brain command — state + insights + learned.
- */
 export async function getFullBrainContext(): Promise<{
   state: BrainSummary | null;
   insights: BrainInsights | null;
   learned: BrainLearned | null;
   online: boolean;
+  mode: "neurolinked" | "embedded";
 }> {
+  const neuroOnline = await checkNeuroOnline();
   const [state, insights, learned] = await Promise.all([
     readBrainState(),
     getBrainInsights(),
     getBrainLearned(),
   ]);
-  return { state, insights, learned, online: state !== null };
+  return {
+    state,
+    insights,
+    learned,
+    online: true,
+    mode: neuroOnline ? "neurolinked" : "embedded",
+  };
 }

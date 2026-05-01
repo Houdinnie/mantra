@@ -4,10 +4,28 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Plus, Trash2, Menu, Zap, Brain, FileText, LayoutDashboard, Bot, Terminal } from "lucide-react";
-import { Streamdown } from "streamdown";
+import { Loader2, Send, Plus, Trash2, Menu, Zap, Brain, FileText, LayoutDashboard, Bot, Terminal, Hash } from "lucide-react";
+import { StreamingMath } from "@/components/MathRenderer";
 import NeuralNetwork from "@/components/NeuralNetwork";
 import { useLocation } from "wouter";
+import { useCollab } from "@/_core/hooks/useCollab";
+
+function PresenceBar({ users }: { users: Array<{ userId: number; userName: string; isTyping: boolean }> }) {
+  if (!users.length) return null;
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/50 border border-slate-700 rounded-full">
+      {users.slice(0, 5).map(u => (
+        <div key={u.userId} className="relative" title={u.userName}>
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center text-xs font-bold text-white">
+            {u.userName[0]?.toUpperCase() ?? "?"}
+          </div>
+          {u.isTyping && <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
+        </div>
+      ))}
+      {users.length > 5 && <span className="text-xs text-slate-400">+{users.length - 5}</span>}
+    </div>
+  );
+}
 
 const THINKING_STEPS = [
   "Parsing your request...",
@@ -67,8 +85,35 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== "undefined" ? window.innerWidth >= 768 : true);
   const [showSkills, setShowSkills] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+
+  const AGENT_MENTIONS_CHAT = [
+    { mention: "@ideator",    label: "💡 Ideator",           desc: "Startup & validation" },
+    { mention: "@tax",        label: "💰 Tax Strategist",    desc: "NHR, UAE, Singapore" },
+    { mention: "@legal",      label: "⚖️ Entity Lawyer",     desc: "LLC, corp, structure" },
+    { mention: "@compliance", label: "🔐 Compliance",        desc: "GDPR, SOC2, KYC" },
+    { mention: "@nomad",      label: "🗺️ Nomad Navigator",   desc: "Visa, relocation" },
+    { mention: "@luxury",     label: "✈️ Luxury Concierge",  desc: "Travel, hotels" },
+    { mention: "@wellness",   label: "🏥 Wellness Director", desc: "Health, longevity" },
+    { mention: "@wealth",     label: "📈 Wealth Architect",  desc: "Portfolio, banking" },
+    { mention: "@ceo",        label: "👑 CEO",               desc: "Strategy & vision" },
+    { mention: "@cfo",        label: "💹 CFO",               desc: "Finance & unit economics" },
+    { mention: "@cto",        label: "⚙️ CTO",               desc: "Architecture & engineering" },
+    { mention: "@cmo",        label: "📣 CMO",               desc: "Marketing & growth" },
+  ];
+
+  const atMatch = input.match(/@(\w*)$/);
+  const mentionQuery = atMatch ? atMatch[1].toLowerCase() : "";
+  const filteredMentions = showMentions && atMatch
+    ? AGENT_MENTIONS_CHAT.filter(m => m.mention.slice(1).startsWith(mentionQuery))
+    : [];
+
+  const insertMentionChat = (mention: string) => {
+    setInput(prev => prev.replace(/@\w*$/, mention + " "));
+    setShowMentions(false);
+  };
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -79,6 +124,27 @@ export default function Chat() {
   );
   const getSessionsQuery = trpc.chat.getSessions.useQuery({ limit: 50 });
   const deleteSessionMutation = trpc.chat.deleteSession.useMutation();
+
+  // Collab — join the session room when sessionId and userId are ready
+  const { otherUsers, typingUsers, sendTyping } = useCollab({
+    sessionId: sessionId ?? "lobby",
+    userId: userId ?? 0,
+    userName: (user as any)?.name ?? "User",
+    onMessage: (msg) => {
+      // A collaborator sent a message — append it
+      if (msg.role === "user") {
+        setMessages(prev => [...prev, { role: "user", content: msg.content }]);
+      }
+    },
+    onDelta: (text, index) => {
+      // A collaborator's response is streaming — update that message
+      setMessages(prev => {
+        const updated = [...prev];
+        if (updated[index]) updated[index] = { ...updated[index], content: (updated[index].content ?? "") + text };
+        return updated;
+      });
+    },
+  });
 
   // Capture userId from auth
   useEffect(() => {
@@ -268,12 +334,20 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex">
+    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex overflow-hidden">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <div
         className={`${
-          sidebarOpen ? "w-64" : "w-0"
-        } bg-slate-900/50 border-r border-slate-800 transition-all duration-300 flex flex-col overflow-hidden`}
+          sidebarOpen ? "w-64 md:w-64" : "w-0"
+        } bg-slate-900/50 border-r border-slate-800 transition-all duration-300 flex flex-col overflow-hidden flex-shrink-0
+        ${sidebarOpen ? "fixed md:relative z-40 h-full" : "relative"}`}
       >
         <div className="p-4 border-b border-slate-800">
           <Button
@@ -319,27 +393,21 @@ export default function Chat() {
         </ScrollArea>
 
         {/* Nav links */}
-        <div className="p-3 border-t border-slate-800 grid grid-cols-5 gap-1">
-          <button onClick={() => navigate("/dashboard")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-white">
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span className="text-xs">Dash</span>
-          </button>
-          <button onClick={() => navigate("/notes")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-white">
-            <FileText className="w-3.5 h-3.5" />
-            <span className="text-xs">Notes</span>
-          </button>
-          <button onClick={() => navigate("/tasks")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-cyan-400">
-            <Zap className="w-3.5 h-3.5" />
-            <span className="text-xs">Tasks</span>
-          </button>
-          <button onClick={() => navigate("/sandbox")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-green-400">
-            <Terminal className="w-3.5 h-3.5" />
-            <span className="text-xs">Box</span>
-          </button>
-          <button onClick={() => navigate("/brain")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-violet-400">
-            <Brain className="w-3.5 h-3.5" />
-            <span className="text-xs">Brain</span>
-          </button>
+        <div className="p-2 border-t border-slate-800 grid grid-cols-6 gap-0.5">
+          {[
+            { icon: <LayoutDashboard className="w-3.5 h-3.5" />, label: "Dash",     path: "/dashboard", color: "" },
+            { icon: <Hash            className="w-3.5 h-3.5" />, label: "Channels", path: "/channels",  color: "hover:text-cyan-300" },
+            { icon: <FileText        className="w-3.5 h-3.5" />, label: "Notes",    path: "/notes",     color: "" },
+            { icon: <Zap             className="w-3.5 h-3.5" />, label: "Tasks",    path: "/tasks",     color: "hover:text-cyan-400" },
+            { icon: <Terminal        className="w-3.5 h-3.5" />, label: "Box",      path: "/sandbox",   color: "hover:text-green-400" },
+            { icon: <Brain           className="w-3.5 h-3.5" />, label: "Brain",    path: "/brain",     color: "hover:text-violet-400" },
+          ].map(item => (
+            <button key={item.path} onClick={() => navigate(item.path)}
+              className={`flex flex-col items-center gap-0.5 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 ${item.color}`}>
+              {item.icon}
+              <span className="text-xs">{item.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Skills panel in sidebar */}
@@ -376,7 +444,11 @@ export default function Chat() {
               <p className="text-xs text-cyan-400">Powered by Claude · Agent Router Active</p>
             </div>
           </div>
-          <div className="text-sm text-slate-400">{user?.name}</div>
+          <div className="flex items-center gap-3">
+            {otherUsers.length > 0 && <PresenceBar users={otherUsers} />}
+            {typingUsers.length > 0 && <span className="text-xs text-slate-400 animate-pulse">{typingUsers.map(u => u.userName).join(", ")} typing...</span>}
+            <div className="text-sm text-slate-400">{user?.name}</div>
+          </div>
         </div>
 
         {/* Messages */}
@@ -437,7 +509,7 @@ export default function Chat() {
 
                   {msg.role === "assistant" ? (
                     msg.content ? (
-                      <Streamdown>{msg.content}</Streamdown>
+                      <StreamingMath>{msg.content}</StreamingMath>
                     ) : (
                       <span className="text-slate-500 text-sm italic">Thinking…</span>
                     )
@@ -462,6 +534,20 @@ export default function Chat() {
         {/* Input area */}
         <div className="border-t border-slate-800 bg-slate-900/50 px-6 py-4 flex-shrink-0">
           <div className="max-w-3xl mx-auto">
+            {/* @mention autocomplete */}
+            {filteredMentions.length > 0 && (
+              <div className="mb-2 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+                {filteredMentions.map((m) => (
+                  <button key={m.mention} onClick={() => insertMentionChat(m.mention)}
+                    className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors flex items-center gap-3">
+                    <span className="text-violet-400 font-mono text-sm font-bold">{m.mention}</span>
+                    <span className="text-white text-sm">{m.label}</span>
+                    <span className="text-slate-500 text-xs ml-auto">{m.desc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Skill command autocomplete */}
             {showSkills && input.startsWith("/") && (
               <div className="mb-2 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
@@ -486,15 +572,16 @@ export default function Chat() {
                 onChange={(e) => {
                   setInput(e.target.value);
                   setShowSkills(e.target.value.startsWith("/"));
+                  setShowMentions(e.target.value.includes("@"));
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSendMessage();
                   }
-                  if (e.key === "Escape") setShowSkills(false);
+                  if (e.key === "Escape") { setShowSkills(false); setShowMentions(false); }
                 }}
-                placeholder="Describe your goal, or type / for agent commands…"
+                placeholder="Describe your goal, type / for skills, or @ to route to an agent…"
                 disabled={isLoading}
                 className="bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500"
               />

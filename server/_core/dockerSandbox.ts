@@ -70,11 +70,14 @@ export async function isDockerAvailable(): Promise<boolean> {
 // Sandbox Docker image — pull or use existing
 // ─────────────────────────────────────────────────────────────
 
-const SANDBOX_IMAGE = "ubuntu:22.04";
+const SANDBOX_IMAGE = "mcr.microsoft.com/playwright/python:v1.44.0-jammy";
+
+// Install commands run once after container starts
+// Playwright image already has Chromium, Firefox, WebKit + all deps
 const SANDBOX_INIT_COMMANDS = [
-  "apt-get update -qq",
-  "apt-get install -y -qq python3 python3-pip nodejs npm curl wget git jq unzip build-essential 2>/dev/null",
-  "pip3 install requests pandas numpy beautifulsoup4 2>/dev/null || true",
+  "pip3 install -q requests pandas numpy beautifulsoup4 playwright 2>/dev/null || true",
+  "npm install -g --silent tsx ts-node 2>/dev/null || true",
+  "mkdir -p /workspace",
 ].join(" && ");
 
 export async function ensureSandboxImage(): Promise<void> {
@@ -106,16 +109,20 @@ export async function createSandbox(
       "run", "-d",
       "--name", id,
       "--network", network,
-      "--memory", "512m",
-      "--cpus", "1.0",
-      "--pids-limit", "64",
+      "--memory", "1g",
+      "--cpus", "1.5",
+      "--pids-limit", "128",
       "--workdir", workdir,
-      "--rm",                          // auto-remove when stopped
-      "--cap-drop", "ALL",             // drop all Linux capabilities
-      "--security-opt", "no-new-privileges:true",
+      "--rm",
+      "--cap-drop", "ALL",
+      "--cap-add", "SYS_ADMIN",     // required for Chromium sandbox
+      "--security-opt", "seccomp=unconfined", // required for browser
+      "--security-opt", "no-new-privileges:false",
+      "--shm-size", "1g",            // Chromium needs shared memory
+      "-e", "DISPLAY=:99",
+      "-e", "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
       SANDBOX_IMAGE,
       "/bin/bash", "-c",
-      // Keep alive + install tools
       `mkdir -p ${workdir} && ${SANDBOX_INIT_COMMANDS} && tail -f /dev/null`,
     ];
 

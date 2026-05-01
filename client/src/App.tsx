@@ -12,6 +12,7 @@ import Notes from "./pages/Notes";
 import BrainPage from "./pages/Brain";
 import Tasks from "./pages/Tasks";
 import SandboxPage from "./pages/Sandbox";
+import ChannelsPage from "./pages/Channels";
 
 function Router() {
   return (
@@ -45,6 +46,11 @@ function Router() {
       <Route path="/sandbox">
         <ProtectedRoute>
           <SandboxPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/channels">
+        <ProtectedRoute>
+          <ChannelsPage />
         </ProtectedRoute>
       </Route>
       <Route path="/404" component={NotFound} />

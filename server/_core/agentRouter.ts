@@ -172,8 +172,53 @@ export function detectSkillCommand(message: string): SkillMatch {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Persona detection
+// @agent mention detection — parse @personaId from message
 // ─────────────────────────────────────────────────────────────
+
+const AGENT_MENTION_MAP: Record<string, PersonaId> = {
+  "@ideator":      "ideator",
+  "@tax":          "tax-strategist",
+  "@taxstrategist":"tax-strategist",
+  "@lawyer":       "entity-lawyer",
+  "@legal":        "entity-lawyer",
+  "@compliance":   "compliance-officer",
+  "@nomad":        "nomad-navigator",
+  "@navigator":    "nomad-navigator",
+  "@luxury":       "luxury-concierge",
+  "@concierge":    "luxury-concierge",
+  "@wellness":     "health-wellness",
+  "@health":       "health-wellness",
+  "@wealth":       "wealth-advisor",
+  "@architect":    "wealth-advisor",
+  "@ceo":          "default",  // handled by ClawCompany board
+  "@cfo":          "wealth-advisor",
+  "@cto":          "ideator",
+  "@cmo":          "ideator",
+};
+
+export function parseAgentMention(message: string): {
+  mentionedPersona: PersonaId | null;
+  cleanedMessage: string;
+} {
+  const lower = message.toLowerCase();
+  for (const [mention, personaId] of Object.entries(AGENT_MENTION_MAP)) {
+    if (lower.includes(mention + " ") || lower.endsWith(mention)) {
+      return {
+        mentionedPersona: personaId,
+        cleanedMessage: message.replace(new RegExp(mention, "i"), "").trim(),
+      };
+    }
+  }
+  return { mentionedPersona: null, cleanedMessage: message };
+}
+
+export function getPersonaById(id: PersonaId) {
+  return PERSONAS.find(p => p.id === id) ?? null;
+}
+
+export function getAllPersonas() {
+  return PERSONAS.map(p => ({ id: p.id, name: p.name, emoji: p.emoji }));
+}
 
 export function detectPersona(message: string, history: Array<{ role: string; content: string }>): Persona {
   const contextWindow = [message, ...history.slice(-4).map((m) => m.content)].join(" ").toLowerCase();
@@ -217,7 +262,15 @@ export type RoutingResult = {
 
 export function routeMessage(rawMessage: string, history: Array<{ role: string; content: string }>): RoutingResult {
   const skillMatch = detectSkillCommand(rawMessage);
-  const persona = detectPersona(skillMatch.cleanedMessage, history);
+
+  // Check for @agent mention — overrides auto-detection
+  const { mentionedPersona, cleanedMessage: mentionCleaned } = parseAgentMention(skillMatch.cleanedMessage);
+  const finalMessage = mentionCleaned || skillMatch.cleanedMessage;
+
+  // Persona: @mention takes priority over auto-detection
+  const persona = mentionedPersona
+    ? (getPersonaById(mentionedPersona) ?? detectPersona(finalMessage, history))
+    : detectPersona(finalMessage, history);
 
   // Detect if this is a research-heavy question even without /search command
   const needsSearch = skillMatch.routeType === "web_search"
@@ -246,7 +299,7 @@ export function routeMessage(rawMessage: string, history: Array<{ role: string; 
 
   return {
     systemPrompt: parts.join("\n"),
-    userMessage: skillMatch.cleanedMessage,
+    userMessage: finalMessage,
     persona,
     skill: skillMatch.skill,
     tier: skillMatch.tier,

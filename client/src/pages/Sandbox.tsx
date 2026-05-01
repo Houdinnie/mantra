@@ -9,7 +9,7 @@ import { useLocation } from "wouter";
 import {
   Terminal, FileText, Play, Square, RefreshCw, ChevronRight,
   Folder, File, Brain, Zap, CheckCircle, XCircle, Loader2,
-  Eye, Download, ArrowLeft
+  Eye, Download, ArrowLeft, Upload, X as XIcon
 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { nanoid } from "nanoid";
@@ -37,7 +37,8 @@ const TOOL_META: Record<string, { emoji: string; color: string }> = {
   write_file:    { emoji: "📝", color: "text-blue-400" },
   read_file:     { emoji: "📖", color: "text-slate-400" },
   list_files:    { emoji: "📁", color: "text-yellow-400" },
-  browser_fetch: { emoji: "🌐", color: "text-purple-400" },
+  browser:       { emoji: "🌐", color: "text-purple-400" },
+  upload_file:   { emoji: "📤", color: "text-orange-400" },
   task_complete: { emoji: "✅", color: "text-emerald-400" },
 };
 
@@ -172,6 +173,81 @@ function EventRow({ event }: { event: EventLogEntry }) {
   return null;
 }
 
+// ─── Upload Zone ───────────────────────────────────────────────
+function UploadZone({ sessionId, userId, onUploaded }: {
+  sessionId: string; userId: number | null; onUploaded: (filename: string) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploads, setUploads] = useState<Array<{ name: string; status: "ok" | "err" }>>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const uploadFile = async (file: File) => {
+    if (!userId) return;
+    setUploading(true);
+    try {
+      const res = await fetch("/api/sandbox/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "x-session-id": sessionId,
+          "x-user-id": String(userId),
+          "x-filename": encodeURIComponent(file.name),
+        },
+        body: file,
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setUploads(prev => [...prev, { name: file.name, status: "ok" }]);
+        onUploaded(file.name);
+      } else {
+        setUploads(prev => [...prev, { name: file.name, status: "err" }]);
+      }
+    } catch {
+      setUploads(prev => [...prev, { name: file.name, status: "err" }]);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    Array.from(e.dataTransfer.files).forEach(uploadFile);
+  };
+
+  return (
+    <div className="p-3 border-b border-slate-800">
+      <div
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+          dragging ? "border-cyan-500 bg-cyan-900/20" : "border-slate-700 hover:border-slate-600"
+        }`}
+      >
+        <input ref={inputRef} type="file" multiple className="hidden"
+          onChange={e => Array.from(e.target.files ?? []).forEach(uploadFile)} />
+        {uploading
+          ? <p className="text-xs text-cyan-400 flex items-center justify-center gap-2"><Loader2 className="w-3 h-3 animate-spin" />Uploading...</p>
+          : <p className="text-xs text-slate-500"><Upload className="w-3 h-3 inline mr-1" />Drop files or click to upload into sandbox</p>
+        }
+      </div>
+      {uploads.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {uploads.slice(-3).map((u, i) => (
+            <div key={i} className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${u.status === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+              {u.status === "ok" ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+              {u.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── File viewer ───────────────────────────────────────────────
 function FileViewer({ sessionId }: { sessionId: string }) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -211,9 +287,21 @@ function FileViewer({ sessionId }: { sessionId: string }) {
             fileQuery.isLoading ? (
               <p className="text-xs text-slate-500">Loading...</p>
             ) : (
-              <pre className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap">
-                {fileQuery.data?.content}
-              </pre>
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono text-slate-400">{selectedPath}</span>
+                  <a
+                    href={`/api/sandbox/download?sessionId=${encodeURIComponent(sessionId)}&path=${encodeURIComponent(selectedPath)}`}
+                    download
+                    className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
+                  >
+                    <Download className="w-3 h-3" /> Download
+                  </a>
+                </div>
+                <pre className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap">
+                  {fileQuery.data?.content}
+                </pre>
+              </>
             )
           ) : (
             <p className="text-xs text-slate-600 text-center mt-8">Select a file to view</p>
@@ -233,7 +321,13 @@ export default function SandboxPage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<EventLogEntry[]>([]);
-  const [activeTab, setActiveTab] = useState<"terminal" | "files">("terminal");
+  const [activeTab, setActiveTab] = useState<"terminal" | "files" | "upload">("terminal");
+
+  const handleUpload = (filename: string) => {
+    // Pre-fill task with context about the uploaded file
+    if (!task) setTask(`Process the uploaded file: ${filename}`);
+    setActiveTab("terminal");
+  };
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -403,6 +497,7 @@ export default function SandboxPage() {
             {[
               { id: "terminal", label: "Terminal", icon: <Terminal className="w-3.5 h-3.5" /> },
               { id: "files",    label: "Files",    icon: <Folder    className="w-3.5 h-3.5" /> },
+              { id: "upload",   label: "Upload",   icon: <Upload    className="w-3.5 h-3.5" /> },
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id as any)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
@@ -453,6 +548,17 @@ export default function SandboxPage() {
           {activeTab === "files" && (
             <div className="flex-1 overflow-hidden">
               <FileViewer sessionId={sessionId} />
+            </div>
+          )}
+
+          {/* Upload */}
+          {activeTab === "upload" && (
+            <div className="flex-1 overflow-auto p-4">
+              <h2 className="text-sm font-bold mb-1">Upload Files into Sandbox</h2>
+              <p className="text-xs text-slate-400 mb-4">
+                Files land in <code className="text-cyan-400">/workspace/</code>. The agent can read and process them immediately.
+              </p>
+              <UploadZone sessionId={sessionId} userId={userId} onUploaded={handleUpload} />
             </div>
           )}
         </div>
