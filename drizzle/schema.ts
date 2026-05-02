@@ -106,3 +106,25 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
     references: [chatSessions.sessionId],
   }),
 }));
+
+/** Agent Channels — independent agent contexts à la ClawX */
+export const agentChannels = mysqlTable("agent_channels", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  description: text("description"),
+  emoji: varchar("emoji", { length: 8 }).default("💬").notNull(),
+  personaId: varchar("personaId", { length: 64 }).default("default").notNull(),
+  systemPromptOverride: text("systemPromptOverride"),
+  modelOverride: varchar("modelOverride", { length: 64 }),
+  color: varchar("color", { length: 16 }).default("#00f5ff").notNull(),
+  messageCount: int("messageCount").default(0).notNull(),
+  lastMessage: text("lastMessage"),
+  pinned: boolean("pinned").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_channels_user_id").on(table.userId),
+}));
+
+export type AgentChannel = typeof agentChannels.$inferSelect;

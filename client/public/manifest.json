@@ -1,0 +1,48 @@
+{
+  "name": "Mantra — AI Co-Founder",
+  "short_name": "Mantra",
+  "description": "AI Co-Founder platform powered by Claude — chat, sandbox, brain, task automation",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00f5ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "Chat",
+      "description": "Start a new AI conversation",
+      "url": "/app",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sandbox",
+      "short_name": "Sandbox",
+      "description": "Open autonomous code sandbox",
+      "url": "/sandbox",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Brain",
+      "short_name": "Brain",
+      "description": "View NeuroLinked brain",
+      "url": "/brain",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
