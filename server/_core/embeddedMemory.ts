@@ -34,11 +34,66 @@ const MAX_EMBEDDED_MEMORIES = 2000;
 // ─────────────────────────────────────────────────────────────
 
 const STOP_WORDS = new Set([
-  "a","an","the","is","it","in","on","at","to","for","of","and","or","but",
-  "with","from","this","that","are","was","were","be","been","being","have",
-  "has","had","do","does","did","will","would","could","should","may","might",
-  "i","you","he","she","we","they","me","him","her","us","them","my","your",
-  "his","its","our","their","what","which","who","how","when","where","why",
+  "a",
+  "an",
+  "the",
+  "is",
+  "it",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "and",
+  "or",
+  "but",
+  "with",
+  "from",
+  "this",
+  "that",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "i",
+  "you",
+  "he",
+  "she",
+  "we",
+  "they",
+  "me",
+  "him",
+  "her",
+  "us",
+  "them",
+  "my",
+  "your",
+  "his",
+  "its",
+  "our",
+  "their",
+  "what",
+  "which",
+  "who",
+  "how",
+  "when",
+  "where",
+  "why",
 ]);
 
 function tokenize(text: string): string[] {
@@ -59,8 +114,13 @@ function buildVector(text: string): Map<string, number> {
   return vec;
 }
 
-function cosineSimilarity(a: Map<string, number>, b: Map<string, number>): number {
-  let dot = 0, normA = 0, normB = 0;
+function cosineSimilarity(
+  a: Map<string, number>,
+  b: Map<string, number>
+): number {
+  let dot = 0,
+    normA = 0,
+    normB = 0;
   for (const [term, valA] of a) {
     const valB = b.get(term) ?? 0;
     dot += valA * valB;
@@ -102,7 +162,13 @@ export function embeddedObserve(
 export function embeddedRecall(
   query: string,
   limit = 5
-): Array<{ id: number; text: string; source: string; tags: string[]; score: number }> {
+): Array<{
+  id: number;
+  text: string;
+  source: string;
+  tags: string[];
+  score: number;
+}> {
   if (!memoryStore.length) return [];
 
   const queryVec = buildVector(query);
@@ -129,7 +195,10 @@ export function embeddedBuildContext(userMessage: string): string {
   const lines = memories
     .filter(m => m.score > 0.05)
     .slice(0, 3)
-    .map(m => `- [${m.source}] ${m.text.substring(0, 200)}${m.text.length > 200 ? "…" : ""}`);
+    .map(
+      m =>
+        `- [${m.source}] ${m.text.substring(0, 200)}${m.text.length > 200 ? "…" : ""}`
+    );
 
   if (!lines.length) return "";
   return `\n---\n## Memory (associative recall)\n${lines.join("\n")}`;
@@ -152,13 +221,18 @@ export function embeddedGetLearned() {
   const recentMemories = memoryStore
     .slice(-10)
     .reverse()
-    .map(m => ({ text: m.text, source: m.source, ts: Math.floor(m.ts / 1000) }));
+    .map(m => ({
+      text: m.text,
+      source: m.source,
+      ts: Math.floor(m.ts / 1000),
+    }));
 
   return {
     top_concepts: topConcepts,
     recent_memories: recentMemories,
     total_memories: memoryStore.length,
-    session_memories: memoryStore.filter(m => m.ts > Date.now() - 3600_000).length,
+    session_memories: memoryStore.filter(m => m.ts > Date.now() - 3600_000)
+      .length,
   };
 }
 
@@ -166,14 +240,14 @@ export function embeddedGetStatus() {
   return {
     status: "online",
     development_stage: `embedded-${memoryStore.length > 500 ? "mature" : memoryStore.length > 100 ? "growing" : "infant"}`,
-    total_neurons: memoryStore.length * 47,      // approximate
+    total_neurons: memoryStore.length * 47, // approximate
     total_synapses: memoryStore.length * 312,
     uptime_hours: process.uptime() / 3600,
     neuromodulators: {
-      dopamine:        Math.min(1, memoryStore.length / 200),
-      acetylcholine:   0.7,
-      norepinephrine:  0.5,
-      serotonin:       0.6,
+      dopamine: Math.min(1, memoryStore.length / 200),
+      acetylcholine: 0.7,
+      norepinephrine: 0.5,
+      serotonin: 0.6,
     },
     active_regions: ["embedded_memory", "tfidf_recall", "context_injection"],
     memory_count: memoryStore.length,
@@ -187,14 +261,17 @@ export function embeddedGetInsights() {
   if (memoryStore.length > 10) {
     const recent = memoryStore.slice(-20);
     const termFreq = new Map<string, number>();
-    for (const e of recent) for (const [t] of e.vector) termFreq.set(t, (termFreq.get(t) ?? 0) + 1);
-    const top = Array.from(termFreq.entries()).sort((a,b) => b[1]-a[1]).slice(0, 3);
+    for (const e of recent)
+      for (const [t] of e.vector) termFreq.set(t, (termFreq.get(t) ?? 0) + 1);
+    const top = Array.from(termFreq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
     patterns.push(...top.map(([t]) => `Recurring concept: "${t}"`));
   }
 
   return {
     novelty_score: Math.random() * 0.5 + 0.3,
-    energy_level:  Math.random() * 0.4 + 0.6,
+    energy_level: Math.random() * 0.4 + 0.6,
     recent_patterns: patterns,
     memory_replays: Math.floor(memoryStore.length * 0.1),
     cross_references: [] as Array<{ a: string; b: string; strength: number }>,
