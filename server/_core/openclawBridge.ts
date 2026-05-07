@@ -54,9 +54,9 @@ export type FlowDefinition = {
   name: string;
   description?: string;
   trigger: "manual" | "cron" | "webhook" | "message";
-  cronExpression?: string;    // e.g. "0 8 * * *" for 8am daily
+  cronExpression?: string; // e.g. "0 8 * * *" for 8am daily
   webhookPath?: string;
-  messagePattern?: string;    // regex to match on incoming messages
+  messagePattern?: string; // regex to match on incoming messages
   steps: FlowStep[];
   enabled?: boolean;
 };
@@ -64,12 +64,12 @@ export type FlowDefinition = {
 export type FlowStep = {
   id: string;
   type: "message" | "tool" | "condition" | "wait";
-  content?: string;           // message to send to agent
-  tool?: string;              // tool name for type=tool
+  content?: string; // message to send to agent
+  tool?: string; // tool name for type=tool
   toolArgs?: Record<string, unknown>;
-  condition?: string;         // JS expression for type=condition
-  waitMs?: number;            // for type=wait
-  onSuccess?: string;         // next step id
+  condition?: string; // JS expression for type=condition
+  waitMs?: number; // for type=wait
+  onSuccess?: string; // next step id
   onFailure?: string;
 };
 
@@ -104,11 +104,16 @@ async function clawFetch<T>(
     const res = await fetch(`${GATEWAY_URL}${path}`, {
       ...options,
       signal: controller.signal,
-      headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
+      headers: {
+        ...headers,
+        ...((options.headers as Record<string, string>) ?? {}),
+      },
     });
     clearTimeout(timer);
     if (!res.ok) {
-      console.warn(`[OpenClaw] ${options.method ?? "GET"} ${path} → ${res.status}`);
+      console.warn(
+        `[OpenClaw] ${options.method ?? "GET"} ${path} → ${res.status}`
+      );
       return null;
     }
     return (await res.json()) as T;
@@ -147,17 +152,18 @@ export async function sendTask(
   sessionKey = "main",
   waitForResponse = false
 ): Promise<TaskResult | null> {
-  const result = await clawFetch<{ ok: boolean; messageId: string; response?: string }>(
-    `/api/sessions/${sessionKey}/messages`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        message: task,
-        waitForResponse,
-        timeoutMs: waitForResponse ? 30000 : undefined,
-      }),
-    }
-  );
+  const result = await clawFetch<{
+    ok: boolean;
+    messageId: string;
+    response?: string;
+  }>(`/api/sessions/${sessionKey}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      message: task,
+      waitForResponse,
+      timeoutMs: waitForResponse ? 30000 : undefined,
+    }),
+  });
   if (!result) return null;
   return {
     ok: result.ok,
@@ -211,7 +217,9 @@ export async function getFlows(): Promise<FlowDefinition[]> {
   return result?.flows ?? [];
 }
 
-export async function createFlow(flow: FlowDefinition): Promise<FlowDefinition | null> {
+export async function createFlow(
+  flow: FlowDefinition
+): Promise<FlowDefinition | null> {
   return clawFetch<FlowDefinition>("/api/flows", {
     method: "POST",
     body: JSON.stringify(flow),
@@ -282,7 +290,8 @@ export const TASK_TEMPLATES = {
   /** Daily morning briefing sent to WhatsApp/Telegram */
   morningBriefing: (channels: string[]): FlowDefinition => ({
     name: "Morning Briefing",
-    description: "Sends a daily morning briefing with news, tasks, and priorities",
+    description:
+      "Sends a daily morning briefing with news, tasks, and priorities",
     trigger: "cron",
     cronExpression: "0 7 * * *",
     steps: [
@@ -333,7 +342,10 @@ export const TASK_TEMPLATES = {
   }),
 
   /** Trading alert — check an asset on schedule */
-  tradingAlert: (asset: string, cronExpr = "0 9,17 * * 1-5"): FlowDefinition => ({
+  tradingAlert: (
+    asset: string,
+    cronExpr = "0 9,17 * * 1-5"
+  ): FlowDefinition => ({
     name: `Trading Alert: ${asset}`,
     description: `Check ${asset} price and signals at market open/close`,
     trigger: "cron",

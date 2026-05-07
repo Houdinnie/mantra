@@ -49,9 +49,7 @@
       "compositePrimaryKeys": {
         "chat_messages_id": {
           "name": "chat_messages_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -126,17 +124,13 @@
       "compositePrimaryKeys": {
         "chat_sessions_id": {
           "name": "chat_sessions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "chat_sessions_sessionId_unique": {
           "name": "chat_sessions_sessionId_unique",
-          "columns": [
-            "sessionId"
-          ]
+          "columns": ["sessionId"]
         }
       },
       "checkConstraint": {}
@@ -218,17 +212,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}

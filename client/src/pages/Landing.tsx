@@ -8,44 +8,164 @@ import NeuralGlobe from "./NeuralGlobe";
 
 // 7 Pillars data
 const PILLARS = [
-  { id: "nomad", name: "Nomad Navigator", icon: "🗺️", color: "#00f5ff", desc: "Visa optimization, presence tracking, travel intelligence" },
-  { id: "tax", name: "Tax Strategist", icon: "💰", color: "#ffd700", desc: "NHR optimization, treaty analysis, entity structuring" },
-  { id: "legal", name: "Legal Guardian", icon: "⚖️", color: "#ff00aa", desc: "Residency compliance, regulatory monitoring" },
-  { id: "wellness", name: "Wellness Director", icon: "🏥", color: "#00ffcc", desc: "Health insurance, clinic networks, longevity protocols" },
-  { id: "luxury", name: "Luxury Optimiser", icon: "✈️", color: "#ff6600", desc: "Premium travel, hotel programs, lifestyle management" },
-  { id: "wealth", name: "Wealth Architect", icon: "📈", color: "#8844ff", desc: "Investment strategy, banking optimization, fund structures" },
-  { id: "compliance", name: "Compliance Auditor", icon: "🔐", color: "#00ff88", desc: "SOC2, GDPR, substance requirements, audit trails" },
+  {
+    id: "nomad",
+    name: "Nomad Navigator",
+    icon: "🗺️",
+    color: "#00f5ff",
+    desc: "Visa optimization, presence tracking, travel intelligence",
+  },
+  {
+    id: "tax",
+    name: "Tax Strategist",
+    icon: "💰",
+    color: "#ffd700",
+    desc: "NHR optimization, treaty analysis, entity structuring",
+  },
+  {
+    id: "legal",
+    name: "Legal Guardian",
+    icon: "⚖️",
+    color: "#ff00aa",
+    desc: "Residency compliance, regulatory monitoring",
+  },
+  {
+    id: "wellness",
+    name: "Wellness Director",
+    icon: "🏥",
+    color: "#00ffcc",
+    desc: "Health insurance, clinic networks, longevity protocols",
+  },
+  {
+    id: "luxury",
+    name: "Luxury Optimiser",
+    icon: "✈️",
+    color: "#ff6600",
+    desc: "Premium travel, hotel programs, lifestyle management",
+  },
+  {
+    id: "wealth",
+    name: "Wealth Architect",
+    icon: "📈",
+    color: "#8844ff",
+    desc: "Investment strategy, banking optimization, fund structures",
+  },
+  {
+    id: "compliance",
+    name: "Compliance Auditor",
+    icon: "🔐",
+    color: "#00ff88",
+    desc: "SOC2, GDPR, substance requirements, audit trails",
+  },
 ];
 
 // 8 Personas
 const PERSONAS = [
-  { name: "Tax Strategist", type: "Data Analyst", tags: ["NHR", "Treaties", "Optimization"], color: "#ffd700" },
-  { name: "Legal Guardian", type: "Entity Structuring", tags: ["Residency", "Compliance", "Contracts"], color: "#ff00aa" },
-  { name: "Nomad Navigator", type: "Travel Intelligence", tags: ["Visas", "Presence", "Logistics"], color: "#00f5ff" },
-  { name: "Wellness Director", type: "Health Longevity", tags: ["Clinics", "Insurance", "Protocols"], color: "#00ffcc" },
-  { name: "Luxury Optimiser", type: "Premium Experiences", tags: ["Hotels", "Flights", "Concierge"], color: "#ff6600" },
-  { name: "Wealth Architect", type: "Investment Strategy", tags: ["Banking", "Funds", "Structures"], color: "#8844ff" },
-  { name: "Compliance Auditor", type: "Regulatory Intelligence", tags: ["SOC2", "GDPR", "Audits"], color: "#00ff88" },
-  { name: "CEO Agent", type: "Strategic Orchestration", tags: ["Leadership", "Vision", "Execution"], color: "#ffffff" },
+  {
+    name: "Tax Strategist",
+    type: "Data Analyst",
+    tags: ["NHR", "Treaties", "Optimization"],
+    color: "#ffd700",
+  },
+  {
+    name: "Legal Guardian",
+    type: "Entity Structuring",
+    tags: ["Residency", "Compliance", "Contracts"],
+    color: "#ff00aa",
+  },
+  {
+    name: "Nomad Navigator",
+    type: "Travel Intelligence",
+    tags: ["Visas", "Presence", "Logistics"],
+    color: "#00f5ff",
+  },
+  {
+    name: "Wellness Director",
+    type: "Health Longevity",
+    tags: ["Clinics", "Insurance", "Protocols"],
+    color: "#00ffcc",
+  },
+  {
+    name: "Luxury Optimiser",
+    type: "Premium Experiences",
+    tags: ["Hotels", "Flights", "Concierge"],
+    color: "#ff6600",
+  },
+  {
+    name: "Wealth Architect",
+    type: "Investment Strategy",
+    tags: ["Banking", "Funds", "Structures"],
+    color: "#8844ff",
+  },
+  {
+    name: "Compliance Auditor",
+    type: "Regulatory Intelligence",
+    tags: ["SOC2", "GDPR", "Audits"],
+    color: "#00ff88",
+  },
+  {
+    name: "CEO Agent",
+    type: "Strategic Orchestration",
+    tags: ["Leadership", "Vision", "Execution"],
+    color: "#ffffff",
+  },
 ];
 
 // Minimalist skills (slavingia)
 const SKILLS = [
-  { cmd: "/find-community", name: "Find Community", desc: "Identify your founding community before building" },
-  { cmd: "/validate-idea", name: "Validate Idea", desc: "Test demand before writing code" },
-  { cmd: "/processize", name: "Processize", desc: "Manual-first, then automate" },
-  { cmd: "/minimalist-review", name: "Minimalist Review", desc: "Apply The Minimalist Entrepreneur principles" },
+  {
+    cmd: "/find-community",
+    name: "Find Community",
+    desc: "Identify your founding community before building",
+  },
+  {
+    cmd: "/validate-idea",
+    name: "Validate Idea",
+    desc: "Test demand before writing code",
+  },
+  {
+    cmd: "/processize",
+    name: "Processize",
+    desc: "Manual-first, then automate",
+  },
+  {
+    cmd: "/minimalist-review",
+    name: "Minimalist Review",
+    desc: "Apply The Minimalist Entrepreneur principles",
+  },
   { cmd: "/mvp", name: "MVP Builder", desc: "Ship in a weekend" },
-  { cmd: "/first-customers", name: "First Customers", desc: "Sell to 10 before scaling" },
+  {
+    cmd: "/first-customers",
+    name: "First Customers",
+    desc: "Sell to 10 before scaling",
+  },
   { cmd: "/pricing", name: "Pricing", desc: "Charge from day one" },
-  { cmd: "/grow-sustainably", name: "Grow Sustainably", desc: "Profitability-first expansion" },
-  { cmd: "/company-values", name: "Company Values", desc: "Build the house you want to live in" },
-  { cmd: "/marketing-plan", name: "Marketing Plan", desc: "Content-driven growth after PMF" },
+  {
+    cmd: "/grow-sustainably",
+    name: "Grow Sustainably",
+    desc: "Profitability-first expansion",
+  },
+  {
+    cmd: "/company-values",
+    name: "Company Values",
+    desc: "Build the house you want to live in",
+  },
+  {
+    cmd: "/marketing-plan",
+    name: "Marketing Plan",
+    desc: "Content-driven growth after PMF",
+  },
 ];
 
-function GlitchText({ children, className }: { children: React.ReactNode; className?: string }) {
+function GlitchText({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   const [glitch, setGlitch] = useState(false);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (Math.random() > 0.95) setGlitch(true);
@@ -113,7 +233,7 @@ function OrbitingOrbs() {
   );
 }
 
-function SkillPill({ skill }: { skill: typeof SKILLS[0] }) {
+function SkillPill({ skill }: { skill: (typeof SKILLS)[0] }) {
   return (
     <motion.button
       whileHover={{ scale: 1.05, y: -2 }}
@@ -126,7 +246,7 @@ function SkillPill({ skill }: { skill: typeof SKILLS[0] }) {
   );
 }
 
-function PersonaCard({ persona }: { persona: typeof PERSONAS[0] }) {
+function PersonaCard({ persona }: { persona: (typeof PERSONAS)[0] }) {
   return (
     <motion.div
       whileHover={{ scale: 1.02, y: -4 }}
@@ -134,21 +254,28 @@ function PersonaCard({ persona }: { persona: typeof PERSONAS[0] }) {
     >
       <div
         className="absolute inset-0 opacity-5 group-hover:opacity-20 transition-opacity"
-        style={{ background: `radial-gradient(circle at 50% 0%, ${persona.color}30, transparent 60%)` }}
+        style={{
+          background: `radial-gradient(circle at 50% 0%, ${persona.color}30, transparent 60%)`,
+        }}
       />
       <div className="relative">
         <div
           className="w-12 h-12 rounded-xl mb-3"
-          style={{ background: `linear-gradient(135deg, ${persona.color}40, ${persona.color}10)` }}
+          style={{
+            background: `linear-gradient(135deg, ${persona.color}40, ${persona.color}10)`,
+          }}
         />
         <h4 className="font-bold text-white mb-1">{persona.name}</h4>
         <p className="text-xs text-slate-400 mb-3">{persona.type}</p>
         <div className="flex flex-wrap gap-1">
-          {persona.tags.map((tag) => (
+          {persona.tags.map(tag => (
             <span
               key={tag}
               className="px-2 py-0.5 text-xs rounded-full"
-              style={{ backgroundColor: `${persona.color}20`, color: persona.color }}
+              style={{
+                backgroundColor: `${persona.color}20`,
+                color: persona.color,
+              }}
             >
               {tag}
             </span>
@@ -166,7 +293,8 @@ export default function NeonLanding() {
   const scale = useTransform(scrollYProgress, [0, 0.3], [1, 0.8]);
 
   const [typed, setTyped] = useState("");
-  const fullText = "Speak your intention.\nThe Swarm validates • processizes • executes • optimizes —\nacross borders, balance sheets, and first-class cabins.";
+  const fullText =
+    "Speak your intention.\nThe Swarm validates • processizes • executes • optimizes —\nacross borders, balance sheets, and first-class cabins.";
 
   useEffect(() => {
     let i = 0;
@@ -241,7 +369,8 @@ export default function NeonLanding() {
             transition={{ delay: 0.7 }}
             className="text-sm text-slate-500 mb-8"
           >
-            Mantra-Powered Agent Swarm • Guided by The Minimalist Entrepreneur • Built for the Global Nomad Founder
+            Mantra-Powered Agent Swarm • Guided by The Minimalist Entrepreneur •
+            Built for the Global Nomad Founder
           </motion.p>
 
           {/* CTAs */}
@@ -278,9 +407,11 @@ export default function NeonLanding() {
               { value: "69", label: "Specialized Agents" },
               { value: "27+", label: "Tools Integrated" },
               { value: "800+", label: "App Integrations" },
-            ].map((stat) => (
+            ].map(stat => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl font-bold text-cyan-400">{stat.value}</div>
+                <div className="text-3xl font-bold text-cyan-400">
+                  {stat.value}
+                </div>
                 <div className="text-xs text-slate-500">{stat.label}</div>
               </div>
             ))}
@@ -309,7 +440,9 @@ export default function NeonLanding() {
           >
             <span className="text-cyan-400">The 7 Pillars</span>
           </motion.h2>
-          <p className="text-slate-400 text-center mb-12">Your global empire, orchestrated by AI</p>
+          <p className="text-slate-400 text-center mb-12">
+            Your global empire, orchestrated by AI
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PILLARS.map((pillar, i) => (
@@ -323,11 +456,18 @@ export default function NeonLanding() {
               >
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: `radial-gradient(circle at 50% 0%, ${pillar.color}20, transparent 60%)` }}
+                  style={{
+                    background: `radial-gradient(circle at 50% 0%, ${pillar.color}20, transparent 60%)`,
+                  }}
                 />
                 <div className="relative">
                   <div className="text-4xl mb-4">{pillar.icon}</div>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: pillar.color }}>{pillar.name}</h3>
+                  <h3
+                    className="text-xl font-bold mb-2"
+                    style={{ color: pillar.color }}
+                  >
+                    {pillar.name}
+                  </h3>
                   <p className="text-sm text-slate-400">{pillar.desc}</p>
                 </div>
                 <motion.div
@@ -350,11 +490,18 @@ export default function NeonLanding() {
           >
             <span className="text-magenta-400">Your 8 Personas</span>
           </motion.h2>
-          <p className="text-slate-400 text-center mb-12">Specialized AI agents for every dimension of your empire</p>
+          <p className="text-slate-400 text-center mb-12">
+            Specialized AI agents for every dimension of your empire
+          </p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {PERSONAS.map((persona, i) => (
-              <motion.div key={persona.name} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: i * 0.05 }}>
+              <motion.div
+                key={persona.name}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ delay: i * 0.05 }}
+              >
                 <PersonaCard persona={persona} />
               </motion.div>
             ))}
@@ -373,11 +520,19 @@ export default function NeonLanding() {
           >
             <span className="text-emerald-400">Discipline Layer</span>
           </motion.h2>
-          <p className="text-slate-400 text-center mb-12">Powered by The Minimalist Entrepreneur — 10 skills for building right</p>
+          <p className="text-slate-400 text-center mb-12">
+            Powered by The Minimalist Entrepreneur — 10 skills for building
+            right
+          </p>
 
           <div className="flex flex-wrap justify-center gap-3">
             {SKILLS.map((skill, i) => (
-              <motion.div key={skill.cmd} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
+              <motion.div
+                key={skill.cmd}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05 }}
+              >
                 <SkillPill skill={skill} />
               </motion.div>
             ))}
@@ -392,8 +547,13 @@ export default function NeonLanding() {
           whileInView={{ opacity: 1, scale: 1 }}
           className="max-w-2xl mx-auto"
         >
-          <h2 className="text-4xl font-bold mb-4">Ready to Command Your Empire?</h2>
-          <p className="text-slate-400 mb-8">Join the vetted founder network. Self-hosted. Privacy-first. SOC2-aligned by design.</p>
+          <h2 className="text-4xl font-bold mb-4">
+            Ready to Command Your Empire?
+          </h2>
+          <p className="text-slate-400 mb-8">
+            Join the vetted founder network. Self-hosted. Privacy-first.
+            SOC2-aligned by design.
+          </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -409,9 +569,15 @@ export default function NeonLanding() {
         <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-slate-500">
           <div>Self-hosted • Privacy-first • SOC2-aligned by design</div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-cyan-400 transition-colors">GitHub</a>
-            <a href="#" className="hover:text-cyan-400 transition-colors">Docs</a>
-            <a href="#" className="hover:text-cyan-400 transition-colors">Guild</a>
+            <a href="#" className="hover:text-cyan-400 transition-colors">
+              GitHub
+            </a>
+            <a href="#" className="hover:text-cyan-400 transition-colors">
+              Docs
+            </a>
+            <a href="#" className="hover:text-cyan-400 transition-colors">
+              Guild
+            </a>
           </div>
         </div>
       </footer>

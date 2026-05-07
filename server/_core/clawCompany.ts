@@ -41,7 +41,8 @@ Be decisive, concise, and ambitious. Think in years, not weeks.`,
     title: "Chief Financial Officer",
     emoji: "💹",
     model: "claude-sonnet-4-20250514",
-    focus: "financial strategy, unit economics, tax, fundraising, cash management",
+    focus:
+      "financial strategy, unit economics, tax, fundraising, cash management",
     systemPrompt: `You are the CFO of Mantra. You own financial strategy, unit economics, and capital allocation.
 
 Your responsibilities:
@@ -128,12 +129,83 @@ Always start with manual sales before hiring. The founder should close the first
 // ─────────────────────────────────────────────────────────────
 
 const ROLE_TRIGGERS: Record<ExecutiveRole, string[]> = {
-  ceo: ["strategy", "vision", "priority", "ceo", "orchestrate", "roadmap", "direction", "goal"],
-  cfo: ["budget", "revenue", "profit", "unit economics", "fundraise", "runway", "burn", "cfo", "financial", "cac", "ltv", "saas metrics", "valuation"],
-  cto: ["architecture", "stack", "database", "api", "code", "deploy", "infrastructure", "cto", "technical", "backend", "frontend", "security", "performance"],
-  coo: ["process", "operations", "team", "hiring", "coo", "workflow", "system", "onboarding", "vendor", "okr"],
-  cmo: ["marketing", "brand", "content", "growth", "cmo", "seo", "ads", "campaign", "launch", "community", "audience"],
-  cso: ["sales", "pipeline", "cso", "customer", "pricing", "outreach", "close", "churn", "partnership", "crm"],
+  ceo: [
+    "strategy",
+    "vision",
+    "priority",
+    "ceo",
+    "orchestrate",
+    "roadmap",
+    "direction",
+    "goal",
+  ],
+  cfo: [
+    "budget",
+    "revenue",
+    "profit",
+    "unit economics",
+    "fundraise",
+    "runway",
+    "burn",
+    "cfo",
+    "financial",
+    "cac",
+    "ltv",
+    "saas metrics",
+    "valuation",
+  ],
+  cto: [
+    "architecture",
+    "stack",
+    "database",
+    "api",
+    "code",
+    "deploy",
+    "infrastructure",
+    "cto",
+    "technical",
+    "backend",
+    "frontend",
+    "security",
+    "performance",
+  ],
+  coo: [
+    "process",
+    "operations",
+    "team",
+    "hiring",
+    "coo",
+    "workflow",
+    "system",
+    "onboarding",
+    "vendor",
+    "okr",
+  ],
+  cmo: [
+    "marketing",
+    "brand",
+    "content",
+    "growth",
+    "cmo",
+    "seo",
+    "ads",
+    "campaign",
+    "launch",
+    "community",
+    "audience",
+  ],
+  cso: [
+    "sales",
+    "pipeline",
+    "cso",
+    "customer",
+    "pricing",
+    "outreach",
+    "close",
+    "churn",
+    "partnership",
+    "crm",
+  ],
 };
 
 export function detectExecutiveRole(message: string): ExecutiveRole {
@@ -142,7 +214,10 @@ export function detectExecutiveRole(message: string): ExecutiveRole {
   let bestScore = 0;
 
   for (const [role, triggers] of Object.entries(ROLE_TRIGGERS)) {
-    const score = triggers.reduce((acc, t) => acc + (lower.includes(t) ? 1 : 0), 0);
+    const score = triggers.reduce(
+      (acc, t) => acc + (lower.includes(t) ? 1 : 0),
+      0
+    );
     if (score > bestScore) {
       bestScore = score;
       bestRole = role as ExecutiveRole;
@@ -158,7 +233,12 @@ export function detectExecutiveRole(message: string): ExecutiveRole {
 export async function callExecutive(
   role: ExecutiveRole,
   messages: ClaudeMessage[]
-): Promise<{ role: ExecutiveRole; title: string; emoji: string; reply: string }> {
+): Promise<{
+  role: ExecutiveRole;
+  title: string;
+  emoji: string;
+  reply: string;
+}> {
   const config = EXECUTIVES[role];
   const reply = await callClaude({
     system: config.systemPrompt,
@@ -175,7 +255,12 @@ export async function callExecutive(
 
 export type BoardSessionResult = {
   synthesis: string;
-  contributions: Array<{ role: ExecutiveRole; title: string; emoji: string; insight: string }>;
+  contributions: Array<{
+    role: ExecutiveRole;
+    title: string;
+    emoji: string;
+    insight: string;
+  }>;
 };
 
 export async function runBoardSession(
@@ -185,16 +270,19 @@ export async function runBoardSession(
 ): Promise<BoardSessionResult> {
   // Run specialist execs in parallel
   const specialistPrompt = `${task}\n\nProvide your specialist perspective in 2-3 focused paragraphs. Be concrete and actionable.`;
-  
+
   const specialistResults = await Promise.all(
-    roles.map((role) =>
-      callExecutive(role, [...history, { role: "user", content: specialistPrompt }])
+    roles.map(role =>
+      callExecutive(role, [
+        ...history,
+        { role: "user", content: specialistPrompt },
+      ])
     )
   );
 
   // CEO synthesises
   const contributionsSummary = specialistResults
-    .map((r) => `${r.emoji} ${r.title}:\n${r.reply}`)
+    .map(r => `${r.emoji} ${r.title}:\n${r.reply}`)
     .join("\n\n---\n\n");
 
   const ceoBriefing = `You asked your C-suite to weigh in on: "${task}"
@@ -216,7 +304,7 @@ As CEO, synthesise their input into a clear, decisive recommendation. Identify t
 
   return {
     synthesis,
-    contributions: specialistResults.map((r) => ({
+    contributions: specialistResults.map(r => ({
       role: r.role,
       title: r.title,
       emoji: r.emoji,

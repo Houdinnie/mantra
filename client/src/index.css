@@ -121,7 +121,12 @@
     @apply bg-background text-foreground font-sans;
     font-family: "Inter", sans-serif;
   }
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: "Fraunces", serif;
   }
   button:not(:disabled),
