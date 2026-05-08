@@ -1,0 +1,1 @@
+## 2026-05-08 - [Database Aggregation] | **Learning:** Shifting O(N) calculations from TypeScript to SQL aggregate functions (count, sum, max) significantly reduces network transfer and memory overhead. | **Action:** Always prefer SQL-side aggregation for dashboard stats and metrics.
