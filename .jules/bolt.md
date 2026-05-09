@@ -1,0 +1,1 @@
+## 2025-05-14 - Optimized user stats aggregation | **Learning:** Fetching all rows and aggregating in TypeScript is a significant performance anti-pattern as it leads to O(N) memory and network overhead. | **Action:** Use SQL aggregate functions (`count`, `sum`, `max`) in Drizzle queries to perform computation at the database level.
