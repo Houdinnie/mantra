@@ -7,7 +7,7 @@ import {
 } from "../db";
 import { callClaude } from "../_core/anthropic";
 import { getUserStats, getUserSessions } from "../db";
-import { getSleepInsights, getBrainLearned, isBrainOnline } from "../_core/neurolinked";
+import { getSleepInsights, isBrainOnline } from "../_core/neurolinked";
 
 // ─────────────────────────────────────────────────────────────
 // Memory router
