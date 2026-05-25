@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import * as dbFunctions from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -34,6 +35,35 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+    // Mock the database to avoid connection errors during tests
+    const mockDb: any = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      values: vi.fn().mockReturnThis(),
+      onDuplicateKeyUpdate: vi.fn().mockReturnThis(),
+    };
+
+    // Ensure all chainable methods return the mockDb object itself
+    const methods = ['insert', 'select', 'from', 'where', 'limit', 'orderBy', 'update', 'set', 'delete', 'values', 'onDuplicateKeyUpdate'];
+    methods.forEach(method => {
+      mockDb[method].mockReturnValue(mockDb);
+    });
+
+    // Make mockDb look like a promise (for await db.select()...)
+    mockDb.then = (onFulfilled: any) => Promise.resolve([]).then(onFulfilled);
+
+    // Completely replace database functions to return our mock
+    vi.spyOn(dbFunctions, 'getDb').mockResolvedValue(mockDb);
+    vi.spyOn(dbFunctions, 'createChatSession').mockResolvedValue({} as any);
+    vi.spyOn(dbFunctions, 'getUserSessions').mockResolvedValue([]);
+    vi.spyOn(dbFunctions, 'getChatSession').mockResolvedValue({ userId: 1 } as any);
   });
 
   it("should create a new session", async () => {
