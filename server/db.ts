@@ -5,6 +5,10 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+export function setDb(db: any) {
+  _db = db;
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try { _db = drizzle(process.env.DATABASE_URL); }
@@ -98,14 +102,29 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
   return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
 }
 
+/**
+ * BOLT OPTIMIZATION: Use SQL aggregates to calculate user stats.
+ * Why: Avoids fetching all sessions into memory (O(N) data transfer and memory)
+ * and replaces it with a single O(1) aggregate query.
+ * Impact: Significant for users with 100+ sessions.
+ */
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+  const [result] = await db
+    .select({
+      totalSessions: sql<number>`count(*)`,
+      totalMessages: sql<number>`sum(${chatSessions.messageCount})`,
+      lastActive: sql<string>`max(${chatSessions.updatedAt})`,
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  return {
+    totalSessions: Number(result?.totalSessions ?? 0),
+    totalMessages: Number(result?.totalMessages ?? 0),
+    lastActive: result?.lastActive ? new Date(result.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
