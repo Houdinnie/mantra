@@ -5,6 +5,10 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+export function setDb(db: any) {
+  _db = db;
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try { _db = drizzle(process.env.DATABASE_URL); }
@@ -98,14 +102,31 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
   return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
 }
 
+/**
+ * BOLT OPTIMIZATION: Use SQL aggregate functions to calculate user statistics.
+ * This avoids fetching all chat sessions into memory and processing them in Node.js,
+ * reducing memory usage and network overhead, especially for users with large histories.
+ * Expected Impact: O(1) memory and O(N) database time (or O(log N) with indexes)
+ * instead of O(N) memory and O(N log N) processing time.
+ */
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+
+  const [stats] = await db
+    .select({
+      totalSessions: sql<number>`count(${chatSessions.id})`,
+      totalMessages: sql<number>`sum(${chatSessions.messageCount})`,
+      lastActive: sql<Date>`max(${chatSessions.updatedAt})`,
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  return {
+    totalSessions: Number(stats?.totalSessions ?? 0),
+    totalMessages: Number(stats?.totalMessages ?? 0),
+    lastActive: stats?.lastActive ? new Date(stats.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
