@@ -1,0 +1,3 @@
+## 2025-06-16 - [Database Aggregation & Testability]
+**Learning:** In-memory aggregation of database results (like `reduce` on fetched rows) is a performance anti-pattern. Using SQL aggregates (`count`, `sum`, `max`) is significantly more efficient. Additionally, unit testing database logic requires a dependency injection pattern (like `setDb`) because ESM mocking of the database instance is often problematic in this environment. Unrelated changes like lockfile updates from `pnpm install` should be explicitly reverted to maintain clean PR scope.
+**Action:** Always prefer SQL aggregates for statistics. Use the `setDb` pattern for database unit tests. Always verify `git status` and revert unrelated lockfile or core infrastructure changes before submitting.
