@@ -13,6 +13,13 @@ export async function getDb() {
   return _db;
 }
 
+/**
+ * For testing purposes only: override the database instance.
+ */
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
@@ -101,11 +108,23 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+
+  // Optimization: Use SQL aggregate functions to avoid fetching all rows and aggregating in memory.
+  // This is significantly more efficient for users with many chat sessions.
+  const [result] = await db
+    .select({
+      totalSessions: sql<number>`count(*)`,
+      totalMessages: sql<number>`sum(${chatSessions.messageCount})`,
+      lastActive: sql<string | null>`max(${chatSessions.updatedAt})`,
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  return {
+    totalSessions: Number(result?.totalSessions ?? 0),
+    totalMessages: Number(result?.totalMessages ?? 0),
+    lastActive: result?.lastActive ? new Date(result.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
