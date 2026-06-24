@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -31,12 +32,31 @@ function createAuthContext(): TrpcContext {
 
 describe("chat router", () => {
   let ctx: TrpcContext;
+  let mockDb: any;
 
   beforeEach(() => {
     ctx = createAuthContext();
+    mockDb = {
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      values: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      execute: vi.fn(),
+    };
+    setDb(mockDb);
   });
 
   it("should create a new session", async () => {
+    mockDb.insert.mockImplementation(() => ({
+      values: vi.fn().mockResolvedValue({}),
+    }));
+
     const caller = chatRouter.createCaller(ctx);
     const result = await caller.createSession();
 
@@ -77,10 +97,36 @@ describe("chat router", () => {
   });
 
   it("should get sessions for authenticated user", async () => {
-    const caller = chatRouter.createCaller(ctx);
+    mockDb.select.mockReturnThis();
+    mockDb.from.mockReturnThis();
+    mockDb.where.mockReturnThis();
+    mockDb.orderBy.mockReturnThis();
+    mockDb.limit.mockResolvedValue([]);
 
+    const caller = chatRouter.createCaller(ctx);
     const result = await caller.getSessions({ limit: 50 });
 
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should return user stats", async () => {
+    const mockStats = {
+      totalSessions: "5",
+      totalMessages: "100",
+      lastActive: "2023-10-27T10:00:00Z",
+    };
+
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([mockStats]),
+    });
+
+    const caller = chatRouter.createCaller(ctx);
+    const result = await caller.getStats();
+
+    expect(result.totalSessions).toBe(5);
+    expect(result.totalMessages).toBe(100);
+    expect(result.lastActive).toBeInstanceOf(Date);
+    expect(result.lastActive?.toISOString()).toBe("2023-10-27T10:00:00.000Z");
   });
 });
