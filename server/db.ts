@@ -5,6 +5,14 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+/**
+ * BOLT: Internal database instance management.
+ * Exported to allow dependency injection and mocking in unit tests.
+ */
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try { _db = drizzle(process.env.DATABASE_URL); }
@@ -101,11 +109,24 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+
+  // BOLT OPTIMIZATION: Use SQL aggregate functions (count, sum, max) to avoid fetching all sessions into memory.
+  // This changes the complexity from O(N) to O(1) in terms of data transfer and app memory.
+  const [result] = await db
+    .select({
+      totalSessions: sql<number>`count(${chatSessions.id})`,
+      totalMessages: sql<number>`sum(${chatSessions.messageCount})`,
+      lastActive: sql<string | null>`max(${chatSessions.updatedAt})`,
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  return {
+    totalSessions: Number(result?.totalSessions ?? 0),
+    totalMessages: Number(result?.totalMessages ?? 0),
+    // MySQL max() on timestamp might return a string; ensure it's a Date object if present
+    lastActive: result?.lastActive ? new Date(result.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
