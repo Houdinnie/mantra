@@ -12,7 +12,7 @@ export async function registerVoiceUpload(app: Express) {
     try {
       const chunks: Buffer[] = [];
       req.on("data", (chunk: Buffer) => chunks.push(chunk));
-      await new Promise<void>((resolve) => req.on("end", resolve));
+      await new Promise<void>(resolve => req.on("end", resolve));
 
       const audioBuffer = Buffer.concat(chunks);
       if (!audioBuffer.length) {
@@ -20,12 +20,16 @@ export async function registerVoiceUpload(app: Express) {
         return;
       }
 
-      const contentType = (req.headers["content-type"] as string) || "audio/webm";
-      const ext = contentType.includes("mp4") || contentType.includes("m4a")
-        ? "m4a"
-        : contentType.includes("ogg") ? "ogg"
-        : contentType.includes("wav") ? "wav"
-        : "webm";
+      const contentType =
+        (req.headers["content-type"] as string) || "audio/webm";
+      const ext =
+        contentType.includes("mp4") || contentType.includes("m4a")
+          ? "m4a"
+          : contentType.includes("ogg")
+            ? "ogg"
+            : contentType.includes("wav")
+              ? "wav"
+              : "webm";
 
       const { url } = await storagePut(
         `voice/${Date.now()}.${ext}`,

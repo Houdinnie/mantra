@@ -10,8 +10,12 @@
 
 import { ENV } from "./env";
 import {
-  embeddedObserve, embeddedRecall, embeddedBuildContext,
-  embeddedGetLearned, embeddedGetStatus, embeddedGetInsights,
+  embeddedObserve,
+  embeddedRecall,
+  embeddedBuildContext,
+  embeddedGetLearned,
+  embeddedGetStatus,
+  embeddedGetInsights,
   isEmbeddedMemoryOnline,
 } from "./embeddedMemory";
 
@@ -82,11 +86,14 @@ const CHECK_INTERVAL = 30_000; // re-check every 30s
 
 async function checkNeuroOnline(): Promise<boolean> {
   const now = Date.now();
-  if (_neuroOnline !== null && now - _lastCheck < CHECK_INTERVAL) return _neuroOnline;
+  if (_neuroOnline !== null && now - _lastCheck < CHECK_INTERVAL)
+    return _neuroOnline;
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-    const res = await fetch(`${BRAIN_URL}/api/claude/status`, { signal: ctrl.signal });
+    const res = await fetch(`${BRAIN_URL}/api/claude/status`, {
+      signal: ctrl.signal,
+    });
     _neuroOnline = res.ok;
   } catch {
     _neuroOnline = false;
@@ -95,14 +102,20 @@ async function checkNeuroOnline(): Promise<boolean> {
   return _neuroOnline;
 }
 
-async function neuroFetch<T>(path: string, options: RequestInit = {}): Promise<T | null> {
+async function neuroFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T | null> {
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     const res = await fetch(`${BRAIN_URL}${path}`, {
       ...options,
       signal: ctrl.signal,
-      headers: { "Content-Type": "application/json", ...(options.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers ?? {}),
+      },
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -158,7 +171,10 @@ export async function sendToBrain(
   return true;
 }
 
-export async function recallMemories(query: string, limit = 5): Promise<RecalledMemory[]> {
+export async function recallMemories(
+  query: string,
+  limit = 5
+): Promise<RecalledMemory[]> {
   if (await checkNeuroOnline()) {
     const encoded = encodeURIComponent(query);
     const r = await neuroFetch<{ results: RecalledMemory[] }>(
@@ -180,7 +196,9 @@ export async function getBrainLearned(): Promise<BrainLearned | null> {
 
 export async function saveBrain(): Promise<boolean> {
   if (await checkNeuroOnline()) {
-    const r = await neuroFetch<{ ok: boolean }>("/api/brain/save", { method: "POST" });
+    const r = await neuroFetch<{ ok: boolean }>("/api/brain/save", {
+      method: "POST",
+    });
     if (r?.ok) return true;
   }
   return true; // embedded is in-process, no explicit save needed
@@ -196,14 +214,19 @@ export async function getSleepInsights(limit = 10): Promise<BrainInsight[]> {
   return []; // embedded doesn't do sleep consolidation yet
 }
 
-export async function buildBrainMemoryContext(userMessage: string): Promise<string> {
+export async function buildBrainMemoryContext(
+  userMessage: string
+): Promise<string> {
   if (await checkNeuroOnline()) {
     const memories = await recallMemories(userMessage, 4);
     if (memories.length) {
       const lines = memories
         .filter(m => m.score > 0.1)
         .slice(0, 3)
-        .map(m => `- [${m.source}] ${m.text.substring(0, 200)}${m.text.length > 200 ? "…" : ""}`);
+        .map(
+          m =>
+            `- [${m.source}] ${m.text.substring(0, 200)}${m.text.length > 200 ? "…" : ""}`
+        );
       if (lines.length) {
         return `\n---\n## NeuroLinked Memory (associative recall)\n${lines.join("\n")}`;
       }

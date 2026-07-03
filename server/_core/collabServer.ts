@@ -110,7 +110,11 @@ export function broadcastMessage(
  * Broadcast a streaming delta to all collaborators.
  * Called on each SSE chunk so observers see live typing.
  */
-export function broadcastDelta(sessionId: string, text: string, messageIndex: number) {
+export function broadcastDelta(
+  sessionId: string,
+  text: string,
+  messageIndex: number
+) {
   const room = rooms.get(sessionId);
   if (!room) return;
   broadcastAll(room, { type: "delta", text, messageIndex });
@@ -136,7 +140,7 @@ export function setupCollabServer(httpServer: Server) {
     let currentRoom: Room | null = null;
     let currentUserId: number | null = null;
 
-    ws.on("message", (raw) => {
+    ws.on("message", raw => {
       let msg: Record<string, unknown>;
       try {
         msg = JSON.parse(raw.toString());
@@ -147,16 +151,22 @@ export function setupCollabServer(httpServer: Server) {
       switch (msg.type) {
         case "join": {
           const sessionId = msg.sessionId as string;
-          const userId    = msg.userId as number;
-          const userName  = (msg.userName as string) || `User ${userId}`;
+          const userId = msg.userId as number;
+          const userName = (msg.userName as string) || `User ${userId}`;
 
           const room = getOrCreateRoom(sessionId);
-          currentRoom    = room;
-          currentUserId  = userId;
+          currentRoom = room;
+          currentUserId = userId;
 
           // Remove any stale entry for this user
           room.users.delete(userId);
-          room.users.set(userId, { userId, userName, ws, joinedAt: Date.now(), isTyping: false });
+          room.users.set(userId, {
+            userId,
+            userName,
+            ws,
+            joinedAt: Date.now(),
+            isTyping: false,
+          });
 
           // Tell everyone else
           broadcast(room, { type: "joined", userId, userName }, userId);
@@ -173,7 +183,11 @@ export function setupCollabServer(httpServer: Server) {
           if (!currentRoom || !currentUserId) break;
           const user = currentRoom.users.get(currentUserId);
           currentRoom.users.delete(currentUserId);
-          broadcast(currentRoom, { type: "left", userId: currentUserId, userName: user?.userName });
+          broadcast(currentRoom, {
+            type: "left",
+            userId: currentUserId,
+            userName: user?.userName,
+          });
           broadcastAll(currentRoom, presencePayload(currentRoom));
           if (currentRoom.users.size === 0) rooms.delete(currentRoom.sessionId);
           currentRoom = null;
@@ -185,12 +199,16 @@ export function setupCollabServer(httpServer: Server) {
           if (!currentRoom || !currentUserId) break;
           const user = currentRoom.users.get(currentUserId);
           if (user) user.isTyping = !!msg.isTyping;
-          broadcast(currentRoom, {
-            type: "typing",
-            userId: currentUserId,
-            userName: user?.userName,
-            isTyping: !!msg.isTyping,
-          }, currentUserId);
+          broadcast(
+            currentRoom,
+            {
+              type: "typing",
+              userId: currentUserId,
+              userName: user?.userName,
+              isTyping: !!msg.isTyping,
+            },
+            currentUserId
+          );
           break;
         }
 
@@ -205,7 +223,11 @@ export function setupCollabServer(httpServer: Server) {
       if (!currentRoom || !currentUserId) return;
       const user = currentRoom.users.get(currentUserId);
       currentRoom.users.delete(currentUserId);
-      broadcast(currentRoom, { type: "left", userId: currentUserId, userName: user?.userName });
+      broadcast(currentRoom, {
+        type: "left",
+        userId: currentUserId,
+        userName: user?.userName,
+      });
       broadcastAll(currentRoom, presencePayload(currentRoom));
       if (currentRoom.users.size === 0) rooms.delete(currentRoom.sessionId);
     });
@@ -216,11 +238,14 @@ export function setupCollabServer(httpServer: Server) {
   });
 
   // Cleanup empty rooms every 5 minutes
-  setInterval(() => {
-    for (const [id, room] of rooms) {
-      if (room.users.size === 0) rooms.delete(id);
-    }
-  }, 5 * 60 * 1000);
+  setInterval(
+    () => {
+      for (const [id, room] of rooms) {
+        if (room.users.size === 0) rooms.delete(id);
+      }
+    },
+    5 * 60 * 1000
+  );
 
   console.log("[Collab] WebSocket server ready at /ws/collab");
   return wss;
@@ -245,6 +270,9 @@ export function getActiveRooms() {
   return Array.from(rooms.values()).map(r => ({
     sessionId: r.sessionId,
     userCount: r.users.size,
-    users: Array.from(r.users.values()).map(u => ({ userId: u.userId, userName: u.userName })),
+    users: Array.from(r.users.values()).map(u => ({
+      userId: u.userId,
+      userName: u.userName,
+    })),
   }));
 }

@@ -4,10 +4,19 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { chatRouter } from "./routers/chat";
 import {
-  memoryRouter, notesRouter, digestRouter, brainRouter,
-  voiceRouter, notificationRouter, collabRouter,
+  memoryRouter,
+  notesRouter,
+  digestRouter,
+  brainRouter,
+  voiceRouter,
+  notificationRouter,
+  collabRouter,
 } from "./routers/data";
-import { executiveRouter, franklinRouter, millionDollarRouter } from "./routers/agents";
+import {
+  executiveRouter,
+  franklinRouter,
+  millionDollarRouter,
+} from "./routers/agents";
 import { imageRouter } from "./routers/image";
 import { taskRouter } from "./routers/tasks";
 import { sandboxRouter } from "./routers/sandbox";

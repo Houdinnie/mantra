@@ -16,8 +16,8 @@ export default function Dashboard() {
         <button
           onClick={() => setView("swarm")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            view === "swarm" 
-              ? "bg-cyan-600 text-white" 
+            view === "swarm"
+              ? "bg-cyan-600 text-white"
               : "bg-slate-800 text-slate-400 hover:bg-slate-700"
           }`}
         >
@@ -26,8 +26,8 @@ export default function Dashboard() {
         <button
           onClick={() => setView("globe")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            view === "globe" 
-              ? "bg-cyan-600 text-white" 
+            view === "globe"
+              ? "bg-cyan-600 text-white"
               : "bg-slate-800 text-slate-400 hover:bg-slate-700"
           }`}
         >
@@ -35,7 +35,9 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {view === "swarm" ? <SwarmHub /> : (
+      {view === "swarm" ? (
+        <SwarmHub />
+      ) : (
         <div className="h-screen">
           <NeuralGlobe />
         </div>

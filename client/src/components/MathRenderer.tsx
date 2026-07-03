@@ -21,7 +21,8 @@ async function loadKatex() {
       const link = document.createElement("link");
       link.id = "katex-css";
       link.rel = "stylesheet";
-      link.href = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
+      link.href =
+        "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
       document.head.appendChild(link);
     }
   }
@@ -74,7 +75,10 @@ type Props = {
   className?: string;
 };
 
-export const MathRenderer = memo(function MathRenderer({ children, className = "" }: Props) {
+export const MathRenderer = memo(function MathRenderer({
+  children,
+  className = "",
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,12 +99,15 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
       if (!pre || pre.querySelector(".copy-btn")) return;
 
       const btn = document.createElement("button");
-      btn.className = "copy-btn absolute top-2 right-2 text-xs px-2 py-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity";
+      btn.className =
+        "copy-btn absolute top-2 right-2 text-xs px-2 py-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity";
       btn.textContent = "Copy";
       btn.onclick = () => {
         navigator.clipboard.writeText(block.textContent ?? "");
         btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+        setTimeout(() => {
+          btn.textContent = "Copy";
+        }, 2000);
       };
 
       pre.style.position = "relative";
@@ -163,7 +170,9 @@ function MathPostProcessor({ content }: { content: string }) {
       // Find the sibling Streamdown output and process its rendered HTML
       const parent = ref.current?.parentElement;
       if (!parent) return;
-      const streamdownOutput = parent.querySelector(".streamdown-output, [data-streamdown], p, div:not([style])");
+      const streamdownOutput = parent.querySelector(
+        ".streamdown-output, [data-streamdown], p, div:not([style])"
+      );
       if (streamdownOutput) {
         const processed = processMathInHTML(streamdownOutput.innerHTML);
         if (processed !== streamdownOutput.innerHTML) {

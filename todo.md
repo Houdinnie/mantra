@@ -3,6 +3,7 @@
 ## Core Features
 
 ### Database & Backend
+
 - [x] Create chat_sessions and chat_messages tables in MySQL schema
 - [x] Add database indexes for performance (session_id, updated_at)
 - [x] Implement session and message query helpers in server/db.ts
@@ -12,6 +13,7 @@
 - [x] Add error handling and fallback responses for LLM failures
 
 ### Frontend Pages
+
 - [x] Landing page with hero section, feature highlights, and CTA
 - [x] Chat page with message bubbles, composer, and thinking state
 - [x] Dashboard page with session history and usage statistics
@@ -19,6 +21,7 @@
 - [x] Implement route protection for Chat and Dashboard (auth guards)
 
 ### UI & Styling
+
 - [x] Apply dark-themed, futuristic aesthetic globally (index.css)
 - [x] Define color palette: dark slate, cyan accents
 - [x] Typography: Fraunces (display) + Inter (body)
@@ -27,6 +30,7 @@
 - [x] Ensure consistent spacing and component hierarchy
 
 ### Integration & Polish
+
 - [x] Wire frontend to backend API endpoints
 - [x] Implement markdown rendering with Streamdown in chat
 - [x] Test end-to-end chat flow (user message → LLM → display)
