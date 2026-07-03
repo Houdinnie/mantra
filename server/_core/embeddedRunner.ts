@@ -35,8 +35,8 @@ export type EmbeddedFlow = {
 export type EmbeddedStep = {
   id: string;
   type: "message" | "shell" | "wait" | "condition";
-  content?: string;     // for message: prompt to send to Claude
-  command?: string;     // for shell: bash command
+  content?: string; // for message: prompt to send to Claude
+  command?: string; // for shell: bash command
   waitMs?: number;
   condition?: string;
   onSuccess?: string;
@@ -66,7 +66,9 @@ const MAX_LEDGER = 500;
 // Flow CRUD
 // ─────────────────────────────────────────────────────────────
 
-export function createEmbeddedFlow(flow: Omit<EmbeddedFlow, "id" | "createdAt">): EmbeddedFlow {
+export function createEmbeddedFlow(
+  flow: Omit<EmbeddedFlow, "id" | "createdAt">
+): EmbeddedFlow {
   const newFlow: EmbeddedFlow = {
     ...flow,
     id: randomBytes(8).toString("hex"),
@@ -84,7 +86,10 @@ export function getEmbeddedFlows(): EmbeddedFlow[] {
   return Array.from(flows.values());
 }
 
-export function updateEmbeddedFlow(id: string, updates: Partial<EmbeddedFlow>): EmbeddedFlow | null {
+export function updateEmbeddedFlow(
+  id: string,
+  updates: Partial<EmbeddedFlow>
+): EmbeddedFlow | null {
   const flow = flows.get(id);
   if (!flow) return null;
   const updated = { ...flow, ...updates };
@@ -112,7 +117,6 @@ async function executeStep(
   step: EmbeddedStep,
   context: Record<string, string>
 ): Promise<{ output: string; success: boolean }> {
-
   switch (step.type) {
     case "message": {
       const prompt = (step.content ?? "").replace(
@@ -121,7 +125,8 @@ async function executeStep(
       );
       try {
         const reply = await callClaude({
-          system: "You are Mantra's automation agent. Execute the requested action concisely.",
+          system:
+            "You are Mantra's automation agent. Execute the requested action concisely.",
           messages: [{ role: "user", content: prompt }],
           maxTokens: 1024,
         });
@@ -132,12 +137,17 @@ async function executeStep(
     }
 
     case "shell": {
-      if (!step.command) return { output: "No command specified", success: false };
+      if (!step.command)
+        return { output: "No command specified", success: false };
       try {
         const { execFile } = await import("child_process");
         const { promisify } = await import("util");
         const exec = promisify(execFile);
-        const { stdout, stderr } = await exec("/bin/bash", ["-c", step.command], { timeout: 30000 });
+        const { stdout, stderr } = await exec(
+          "/bin/bash",
+          ["-c", step.command],
+          { timeout: 30000 }
+        );
         return { output: stdout + stderr, success: true };
       } catch (err: any) {
         return { output: err.message, success: false };
@@ -151,7 +161,10 @@ async function executeStep(
 
     case "condition": {
       try {
-        const result = new Function("context", `with(context) { return !!(${step.condition}); }`)(context);
+        const result = new Function(
+          "context",
+          `with(context) { return !!(${step.condition}); }`
+        )(context);
         return { output: String(result), success: !!result };
       } catch {
         return { output: "Condition error", success: false };
@@ -283,7 +296,10 @@ function scheduleCron(flow: EmbeddedFlow) {
 
 function cancelCron(flowId: string) {
   const handle = cronHandles.get(flowId);
-  if (handle) { clearInterval(handle); cronHandles.delete(flowId); }
+  if (handle) {
+    clearInterval(handle);
+    cronHandles.delete(flowId);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

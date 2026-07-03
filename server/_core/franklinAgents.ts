@@ -46,7 +46,9 @@ Output your response as valid JSON matching the MarketingPlan schema:
   "firstAction": "string"
 }`;
 
-export async function runMarketingAgent(brief: MarketingBrief): Promise<MarketingPlan> {
+export async function runMarketingAgent(
+  brief: MarketingBrief
+): Promise<MarketingPlan> {
   const prompt = `Build a marketing strategy for:
 Product: ${brief.productDescription}
 Target audience: ${brief.targetAudience}
@@ -118,7 +120,9 @@ Output as valid JSON:
 
 IMPORTANT: Always include the disclaimer. Never make absolute predictions.`;
 
-export async function runTradingAgent(request: TradingResearchRequest): Promise<TradingResearch> {
+export async function runTradingAgent(
+  request: TradingResearchRequest
+): Promise<TradingResearch> {
   const prompt = `Research ${request.asset} for ${request.timeframe ?? "medium-term"} trading.
 ${request.context ? `Additional context: ${request.context}` : ""}
 
@@ -159,7 +163,12 @@ Return valid JSON only.`;
 // ─────────────────────────────────────────────────────────────
 
 export type ContentRequest = {
-  format: "blog_post" | "twitter_thread" | "linkedin_post" | "video_script" | "email_sequence";
+  format:
+    | "blog_post"
+    | "twitter_thread"
+    | "linkedin_post"
+    | "video_script"
+    | "email_sequence";
   topic: string;
   audience: string;
   tone?: string; // "professional" | "casual" | "educational" | "controversial"
@@ -187,7 +196,9 @@ You follow the Minimalist Entrepreneur content philosophy:
 
 When research is requested, use web search to find current data, recent examples, and trending angles.`;
 
-export async function runContentAgent(request: ContentRequest): Promise<ContentOutput> {
+export async function runContentAgent(
+  request: ContentRequest
+): Promise<ContentOutput> {
   const prompt = `Create a ${request.format.replace("_", " ")} about "${request.topic}" for ${request.audience}.
 Tone: ${request.tone ?? "educational and direct"}
 ${request.wordCount ? `Target length: ~${request.wordCount} words` : ""}
@@ -207,7 +218,8 @@ CTA: <call to action>
 ---
 <full content here>`;
 
-  const useSearch = request.includeResearch !== false && request.format === "blog_post";
+  const useSearch =
+    request.includeResearch !== false && request.format === "blog_post";
 
   let reply: string;
   if (useSearch) {
@@ -231,13 +243,14 @@ CTA: <call to action>
   const readTimeMatch = reply.match(/READ_TIME:\s*(.+)/);
   const ctaMatch = reply.match(/CTA:\s*(.+)/);
   const contentStart = reply.indexOf("---\n");
-  const content = contentStart > -1 ? reply.slice(contentStart + 4).trim() : reply;
+  const content =
+    contentStart > -1 ? reply.slice(contentStart + 4).trim() : reply;
 
   return {
     format: request.format,
     title: titleMatch?.[1]?.trim() ?? request.topic,
     content,
-    seoKeywords: keywordsMatch?.[1]?.split(",").map((k) => k.trim()),
+    seoKeywords: keywordsMatch?.[1]?.split(",").map(k => k.trim()),
     estimatedReadTime: readTimeMatch?.[1]?.trim(),
     callToAction: ctaMatch?.[1]?.trim(),
   };

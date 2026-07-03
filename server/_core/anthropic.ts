@@ -37,7 +37,12 @@ function buildHeaders() {
  * Standard (non-streaming) call — returns the full text reply.
  */
 export async function callClaude(params: ClaudeParams): Promise<string> {
-  const { system, messages, model = DEFAULT_MODEL, maxTokens = DEFAULT_MAX_TOKENS } = params;
+  const {
+    system,
+    messages,
+    model = DEFAULT_MODEL,
+    maxTokens = DEFAULT_MAX_TOKENS,
+  } = params;
 
   const response = await fetch(API_URL, {
     method: "POST",
@@ -59,7 +64,7 @@ export async function callClaude(params: ClaudeParams): Promise<string> {
     content: Array<{ type: string; text?: string }>;
   };
 
-  const textBlock = data.content.find((b) => b.type === "text");
+  const textBlock = data.content.find(b => b.type === "text");
   return textBlock?.text ?? "";
 }
 
@@ -70,7 +75,12 @@ export async function callClaude(params: ClaudeParams): Promise<string> {
 export async function* streamClaude(
   params: ClaudeParams
 ): AsyncGenerator<string, void, unknown> {
-  const { system, messages, model = DEFAULT_MODEL, maxTokens = DEFAULT_MAX_TOKENS } = params;
+  const {
+    system,
+    messages,
+    model = DEFAULT_MODEL,
+    maxTokens = DEFAULT_MAX_TOKENS,
+  } = params;
 
   const response = await fetch(API_URL, {
     method: "POST",
@@ -113,7 +123,10 @@ export async function* streamClaude(
           type: string;
           delta?: { type: string; text?: string };
         };
-        if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+        if (
+          event.type === "content_block_delta" &&
+          event.delta?.type === "text_delta"
+        ) {
           yield event.delta.text ?? "";
         }
       } catch {
