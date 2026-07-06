@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -34,9 +35,18 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+    setDb(null);
+    process.env.DATABASE_URL = "";
   });
 
   it("should create a new session", async () => {
+    const mockDb = {
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue({}),
+      }),
+    };
+    setDb(mockDb as any);
+
     const caller = chatRouter.createCaller(ctx);
     const result = await caller.createSession();
 
@@ -77,6 +87,19 @@ describe("chat router", () => {
   });
 
   it("should get sessions for authenticated user", async () => {
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }),
+    };
+    setDb(mockDb as any);
+
     const caller = chatRouter.createCaller(ctx);
 
     const result = await caller.getSessions({ limit: 50 });
