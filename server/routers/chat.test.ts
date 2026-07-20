@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
+import { setDb } from "../db";
 import type { TrpcContext } from "../_core/context";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
@@ -29,11 +30,89 @@ function createAuthContext(): TrpcContext {
   return ctx;
 }
 
+function createMockDb(overrides: {
+  selectResult?: any;
+  insertResult?: any;
+  updateResult?: any;
+  deleteResult?: any;
+} = {}) {
+  let currentOp = "select";
+
+  const queryMock: any = {
+    from: vi.fn().mockImplementation(() => queryMock),
+    where: vi.fn().mockImplementation(() => queryMock),
+    orderBy: vi.fn().mockImplementation(() => queryMock),
+    limit: vi.fn().mockImplementation(() => queryMock),
+    values: vi.fn().mockImplementation(() => {
+      currentOp = "insert";
+      return queryMock;
+    }),
+    set: vi.fn().mockImplementation(() => {
+      currentOp = "update";
+      return queryMock;
+    }),
+    then: vi.fn().mockImplementation((onFulfilled, onRejected) => {
+      let val: any = overrides.selectResult ?? [];
+      if (currentOp === "insert") {
+        val = overrides.insertResult ?? { id: 1 };
+      } else if (currentOp === "update") {
+        val = overrides.updateResult ?? { id: 1 };
+      } else if (currentOp === "delete") {
+        val = overrides.deleteResult ?? { success: true };
+      }
+      currentOp = "select";
+      return Promise.resolve(val).then(onFulfilled, onRejected);
+    }),
+  };
+
+  const dbMock = {
+    select: vi.fn().mockImplementation(() => {
+      currentOp = "select";
+      return queryMock;
+    }),
+    insert: vi.fn().mockImplementation(() => {
+      currentOp = "insert";
+      return queryMock;
+    }),
+    update: vi.fn().mockImplementation(() => {
+      currentOp = "update";
+      return queryMock;
+    }),
+    delete: vi.fn().mockImplementation(() => {
+      currentOp = "delete";
+      return queryMock;
+    }),
+  };
+
+  return dbMock as any;
+}
+
 describe("chat router", () => {
   let ctx: TrpcContext;
 
   beforeEach(() => {
     ctx = createAuthContext();
+    // Inject the mock database
+    const mockDb = createMockDb({
+      selectResult: [
+        {
+          id: 1,
+          userId: 1,
+          sessionId: "s_test_123",
+          title: "Test Chat",
+          messageCount: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      ],
+      insertResult: { id: 1 },
+    });
+    setDb(mockDb);
+  });
+
+  afterEach(() => {
+    // Reset DB back to null
+    setDb(null);
   });
 
   it("should create a new session", async () => {
