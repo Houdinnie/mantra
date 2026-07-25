@@ -1,0 +1,3 @@
+## 2026-03-29 - O(N) Database Aggregation In-Memory Anti-Pattern
+**Learning:** Performing array length, reduces, and array sorts on fetched raw DB rows in the application server is a major performance and scaling bottleneck. Offloading these aggregations to SQL via Drizzle's `count()`, `sum()`, and `max()` aggregate helpers ensures optimal database indexing/execution and limits the payload returned over the wire to O(1) instead of O(N). Additionally, aggregate values returned from SQL must be parsed/normalized (`Number()` and `new Date()`) due to variations in underlying driver return formats.
+**Action:** Always inspect user statistics, metrics, or counting functions to ensure they use native database aggregation rather than in-memory JavaScript/TypeScript processing.
