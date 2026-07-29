@@ -1,8 +1,37 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+
+const mockDb = {
+  insert: vi.fn().mockReturnValue({
+    values: vi.fn().mockResolvedValue({}),
+  }),
+  select: vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+        limit: vi.fn().mockResolvedValue([]),
+      }),
+      orderBy: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([]),
+      }),
+      limit: vi.fn().mockResolvedValue([]),
+    }),
+  }),
+  update: vi.fn().mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue({}),
+    }),
+  }),
+  delete: vi.fn().mockReturnValue({
+    where: vi.fn().mockResolvedValue({}),
+  }),
+} as any;
 
 function createAuthContext(): TrpcContext {
   const user: AuthenticatedUser = {
@@ -33,7 +62,14 @@ describe("chat router", () => {
   let ctx: TrpcContext;
 
   beforeEach(() => {
+    process.env.DATABASE_URL = "";
+    setDb(mockDb);
     ctx = createAuthContext();
+  });
+
+  afterEach(() => {
+    setDb(null);
+    vi.clearAllMocks();
   });
 
   it("should create a new session", async () => {
@@ -82,5 +118,28 @@ describe("chat router", () => {
     const result = await caller.getSessions({ limit: 50 });
 
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should get stats for authenticated user", async () => {
+    mockDb.select.mockReturnValueOnce({
+      from: vi.fn().mockReturnValueOnce({
+        where: vi.fn().mockResolvedValueOnce([
+          {
+            totalSessions: "2",
+            totalMessages: "10",
+            lastActive: new Date("2023-01-01T00:00:00.000Z"),
+          }
+        ]),
+      }),
+    });
+
+    const caller = chatRouter.createCaller(ctx);
+    const result = await caller.getStats();
+
+    expect(result).toEqual({
+      totalSessions: 2,
+      totalMessages: 10,
+      lastActive: new Date("2023-01-01T00:00:00.000Z"),
+    });
   });
 });
