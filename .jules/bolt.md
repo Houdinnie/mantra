@@ -1,0 +1,5 @@
+# Bolt's Performance Optimization Journal
+
+## 2026-03-31 - Drizzle ORM Aggregation & Vitest Mocking Chains
+**Learning:** SQL aggregate operations (such as `count()`, `sum()`, and `max()`) inside Drizzle ORM return string values instead of native numeric/Date types depending on the driver and connection state. If not parsed on the application layer, this can lead to subtle type mismatches and test suite failures. Additionally, mocking nested chainable Drizzle ORM queries in Vitest requires ensuring that the mock database instance itself is NOT thenable, while the returned query builders must be thenable. If the database instance has a `then` property, `await getDb()` will prematurely resolve it and throw TypeErrors.
+**Action:** Always cast `sum()` and `count()` aggregates using `Number()`, and always wrap `max(updatedAt)` in `new Date()`. When mocking Drizzle ORM query builders, implement `then` on the query builders (e.g., the objects returned by `where`, `orderBy`, etc.) to allow them to be awaited, but keep the top-level database mock object clean of any `then` property.
