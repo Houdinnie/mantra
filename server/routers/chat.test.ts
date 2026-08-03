@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -29,11 +30,73 @@ function createAuthContext(): TrpcContext {
   return ctx;
 }
 
+// Helper to create a chainable, non-thenable mock database for Drizzle queries
+function createMockDb(overrides?: {
+  select?: any[];
+  insert?: any;
+}) {
+  const selectQuery = {
+    from: vi.fn().mockImplementation(() => {
+      const fromObj = {
+        where: vi.fn().mockImplementation(() => {
+          const whereObj = {
+            orderBy: vi.fn().mockImplementation(() => {
+              const orderByObj = {
+                limit: vi.fn().mockImplementation(() => Promise.resolve(overrides?.select ?? [])),
+              };
+              Object.defineProperty(orderByObj, "then", {
+                value: (resolve: any) => Promise.resolve(overrides?.select ?? []).then(resolve),
+                configurable: true,
+              });
+              return orderByObj;
+            }),
+            limit: vi.fn().mockImplementation(() => Promise.resolve(overrides?.select ?? [])),
+          };
+          Object.defineProperty(whereObj, "then", {
+            value: (resolve: any) => Promise.resolve(overrides?.select ?? []).then(resolve),
+            configurable: true,
+          });
+          return whereObj;
+        }),
+      };
+      Object.defineProperty(fromObj, "then", {
+        value: (resolve: any) => Promise.resolve(overrides?.select ?? []).then(resolve),
+        configurable: true,
+      });
+      return fromObj;
+    }),
+  };
+
+  const insertQuery = {
+    values: vi.fn().mockImplementation(() => Promise.resolve(overrides?.insert ?? { insertId: 1 })),
+  };
+
+  return {
+    select: vi.fn().mockReturnValue(selectQuery),
+    insert: vi.fn().mockReturnValue(insertQuery),
+    update: vi.fn().mockReturnValue({}),
+    delete: vi.fn().mockReturnValue({}),
+  };
+}
+
 describe("chat router", () => {
   let ctx: TrpcContext;
 
   beforeEach(() => {
     ctx = createAuthContext();
+    // Prevent real database connections
+    process.env.DATABASE_URL = "";
+    // Supply mocked database query builder chain
+    const mockDb = createMockDb({
+      select: [],
+      insert: { insertId: 1 },
+    });
+    setDb(mockDb as any);
+  });
+
+  afterEach(() => {
+    // Prevent state leakage between tests
+    setDb(null);
   });
 
   it("should create a new session", async () => {
