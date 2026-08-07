@@ -78,8 +78,9 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     // Animation loop
     const animate = () => {
+      // Return early and do NOT schedule a new frame when inactive.
+      // This completely pauses the animation rendering loop, reducing idle CPU/GPU overhead to zero.
       if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
         return;
       }
 
@@ -157,7 +158,10 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animationRef.current = requestAnimationFrame(animate);
+    // Only initiate the animation frame loop if active.
+    if (isActive) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       if (animationRef.current !== null) {
