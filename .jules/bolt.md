@@ -1,0 +1,5 @@
+# Bolt's Performance Journal
+
+## 2025-02-14 - Drizzle Database Aggregate Optimization & Mocking
+**Learning:** Pulling entire user records (e.g. chat sessions) from the database and performing operations like count, sum, or sort in application memory is an O(N) operation that scales poorly and consumes excessive network and memory resources. Refactoring these to native Drizzle aggregate functions (`count()`, `sum()`, and `max()`) executes the computation on the database side, returning exactly one row (an O(1) optimization). For unit testing database functions without attempting real connections, we must export a `setDb` mock utility. The mock database query builder must not be thenable itself, but the chain's terminal methods should return thenables to avoid premature resolution by async wrappers like `await getDb()`.
+**Action:** Refactor all in-memory aggregation of database records to native database aggregates, cast outputs correctly (as drivers can return aggregates as strings or ISO strings), and use `setDb` with chainable non-thenable mocks in test suites.
