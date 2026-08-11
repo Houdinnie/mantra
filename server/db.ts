@@ -1,9 +1,13 @@
-import { eq, desc, asc, sql, like, and } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and, count, sum, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, chatSessions, chatMessages, userMemory, userNotes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -101,11 +105,32 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+
+  // OPTIMIZATION: Instead of fetching all sessions for a user and aggregating them in memory (O(N) database fetch, transfer, and sort),
+  // we use SQL aggregate functions (count, sum, max) to calculate stats directly on the database side in O(1) complexity.
+  const result = await db
+    .select({
+      totalSessions: count(chatSessions.id),
+      totalMessages: sum(chatSessions.messageCount),
+      lastActive: max(chatSessions.updatedAt),
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  if (!result || result.length === 0) {
+    return { totalSessions: 0, totalMessages: 0, lastActive: null };
+  }
+
+  const row = result[0];
+  const lastActiveVal = row.lastActive;
+  return {
+    // SQL aggregates like count() or sum() can return values as strings depending on the DB driver.
+    // Explicitly cast to Number to guarantee correct type representation in the application layer.
+    totalSessions: Number(row.totalSessions || 0),
+    totalMessages: Number(row.totalMessages || 0),
+    // Parse aggregate timestamp into a proper Date object to handle potential string/ISO formats.
+    lastActive: lastActiveVal ? new Date(lastActiveVal) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
