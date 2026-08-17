@@ -1,0 +1,3 @@
+## 2025-05-18 - Database SQL Aggregations in Drizzle ORM
+**Learning:** Functions like `getUserStats` in `server/db.ts` fetched full database entities into Node.js application memory to compute counts, sums, and max dates (`Array.prototype.reduce` and `Array.prototype.sort`). Shifting this to native database SQL aggregate functions (`count()`, `sum()`, `max()`) via Drizzle ORM eliminates $O(N)$ network payload bandwidth and CPU overhead.
+**Action:** When calculating statistics or metrics across database tables, always use Drizzle SQL aggregate helpers (`count`, `sum`, `max`, `avg`) in the database query instead of fetching records and computing in application memory.
