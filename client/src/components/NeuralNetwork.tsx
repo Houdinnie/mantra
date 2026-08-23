@@ -78,8 +78,9 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     // Animation loop
     const animate = () => {
+      // Bolt optimization: If component is inactive, stop the requestAnimationFrame loop completely
+      // to save CPU/GPU resources and avoid idle main-thread work.
       if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
         return;
       }
 
@@ -157,7 +158,9 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animationRef.current = requestAnimationFrame(animate);
+    if (isActive) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       if (animationRef.current !== null) {
