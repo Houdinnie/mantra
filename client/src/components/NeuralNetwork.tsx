@@ -89,7 +89,24 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // Performance Optimization (Bolt ⚡):
+      // Batch all static edge line paths into a single path and stroke call per frame
+      // instead of separate stroke() calls per edge. Reduces canvas draw calls from O(E) to O(1).
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < state.edges.length; i++) {
+        const edge = state.edges[i];
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      }
+      ctx.stroke();
+
+      // Update and draw edge pulse animations
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -100,14 +117,6 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         const toNode = state.nodes[edge.to];
 
         if (!fromNode || !toNode) return;
-
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
 
         // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
