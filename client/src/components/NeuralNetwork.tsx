@@ -5,6 +5,17 @@ interface NeuralNetworkProps {
   compact?: boolean;
 }
 
+/**
+ * Optimized Neural Network canvas animation component.
+ *
+ * Performance Optimizations:
+ * 1. Early return on `!isActive`: Completely pauses `requestAnimationFrame` when component is inactive,
+ *    eliminating background CPU/RAF overhead when hidden (O(1) idle performance).
+ * 2. Off-screen Sprite Pre-rendering: Pre-renders radial gradient glows (edge pulse and node halo)
+ *    to off-screen canvas buffers, avoiding ~70 `createRadialGradient` allocations per frame and reducing GC pressure.
+ * 3. Batched Draw Calls: Groups all edge line paths into a single `beginPath()` / `stroke()` pass,
+ *    reducing draw call context overhead from O(E) to O(1) where E is the number of edges.
+ */
 export default function NeuralNetwork({ isActive, compact = false }: NeuralNetworkProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -14,6 +25,9 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
   });
 
   useEffect(() => {
+    // 1. Early exit if inactive to save RAF cycles completely
+    if (!isActive) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -29,6 +43,37 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     const width = rect.width;
     const height = rect.height;
+
+    // Pre-render pulse sprite to offscreen canvas
+    const pulseSprite = document.createElement("canvas");
+    pulseSprite.width = 16;
+    pulseSprite.height = 16;
+    const pCtx = pulseSprite.getContext("2d");
+    if (pCtx) {
+      const g = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+      g.addColorStop(0, "rgba(34, 197, 94, 0.8)");
+      g.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
+      g.addColorStop(1, "rgba(34, 197, 94, 0)");
+      pCtx.fillStyle = g;
+      pCtx.beginPath();
+      pCtx.arc(8, 8, 8, 0, Math.PI * 2);
+      pCtx.fill();
+    }
+
+    // Pre-render halo sprite to offscreen canvas
+    const haloSprite = document.createElement("canvas");
+    haloSprite.width = 20;
+    haloSprite.height = 20;
+    const hCtx = haloSprite.getContext("2d");
+    if (hCtx) {
+      const g = hCtx.createRadialGradient(10, 10, 0, 10, 10, 10);
+      g.addColorStop(0, "rgba(34, 197, 94, 0.3)");
+      g.addColorStop(1, "rgba(34, 197, 94, 0)");
+      hCtx.fillStyle = g;
+      hCtx.beginPath();
+      hCtx.arc(10, 10, 10, 0, Math.PI * 2);
+      hCtx.fill();
+    }
 
     // Initialize neural network structure
     const layers = compact ? [3, 5, 5, 3] : [4, 6, 6, 4];
@@ -78,18 +123,17 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     // Animation loop
     const animate = () => {
-      if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
       // Clear canvas
       ctx.fillStyle = "rgba(15, 23, 42, 0.1)";
       ctx.fillRect(0, 0, width, height);
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // 1. Batch draw edge lines in single stroke call
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -98,47 +142,35 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
         const fromNode = state.nodes[edge.from];
         const toNode = state.nodes[edge.to];
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
 
+      // 2. Draw edge pulses using pre-rendered sprite
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
         if (!fromNode || !toNode) return;
 
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
-
-        // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
         const pulseY = fromNode.y + (toNode.y - fromNode.y) * edge.progress;
-
-        const gradient = ctx.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, 8);
-        gradient.addColorStop(0, "rgba(34, 197, 94, 0.8)");
-        gradient.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
-        gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(pulseX, pulseY, 8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.drawImage(pulseSprite, pulseX - 8, pulseY - 8);
       });
 
-      // Update and draw nodes
+      // 3. Update and draw nodes
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
 
-        // Draw halo
+        // Draw halo using pre-rendered sprite scaled by radius
         const haloRadius = 6 + node.halo * 4;
-        const haloGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloRadius);
-        haloGradient.addColorStop(0, `rgba(34, 197, 94, ${0.3 * node.halo})`);
-        haloGradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = haloGradient;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
-        ctx.fill();
+        const size = haloRadius * 2;
+        ctx.globalAlpha = node.halo;
+        ctx.drawImage(haloSprite, node.x - haloRadius, node.y - haloRadius, size, size);
+        ctx.globalAlpha = 1;
 
         // Draw node core
         ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
@@ -164,7 +196,7 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isActive]);
+  }, [isActive, compact]);
 
   return (
     <canvas
