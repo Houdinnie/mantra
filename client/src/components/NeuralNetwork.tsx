@@ -5,6 +5,51 @@ interface NeuralNetworkProps {
   compact?: boolean;
 }
 
+/**
+ * Pre-render radial gradient texture for edge pulse particles.
+ * Performance Optimization: Prevents invoking `ctx.createRadialGradient()` dozens of
+ * times per frame at 60 FPS, eliminating GC pressure and context state overhead.
+ */
+function createPulseCanvas(): HTMLCanvasElement {
+  const pCanvas = document.createElement("canvas");
+  pCanvas.width = 16;
+  pCanvas.height = 16;
+  const pCtx = pCanvas.getContext("2d");
+  if (pCtx) {
+    const gradient = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+    gradient.addColorStop(0, "rgba(34, 197, 94, 0.8)");
+    gradient.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
+    gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
+    pCtx.fillStyle = gradient;
+    pCtx.beginPath();
+    pCtx.arc(8, 8, 8, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+  return pCanvas;
+}
+
+/**
+ * Pre-render radial gradient texture for node halos.
+ * Performance Optimization: Reusable offscreen texture scaled and drawn via fast
+ * hardware-accelerated `drawImage` blits with dynamic `globalAlpha`.
+ */
+function createHaloCanvas(): HTMLCanvasElement {
+  const hCanvas = document.createElement("canvas");
+  hCanvas.width = 20;
+  hCanvas.height = 20;
+  const hCtx = hCanvas.getContext("2d");
+  if (hCtx) {
+    const gradient = hCtx.createRadialGradient(10, 10, 0, 10, 10, 10);
+    gradient.addColorStop(0, "rgba(34, 197, 94, 0.3)");
+    gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
+    hCtx.fillStyle = gradient;
+    hCtx.beginPath();
+    hCtx.arc(10, 10, 10, 0, Math.PI * 2);
+    hCtx.fill();
+  }
+  return hCanvas;
+}
+
 export default function NeuralNetwork({ isActive, compact = false }: NeuralNetworkProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -19,6 +64,10 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // Pre-render static offscreen textures for pulses and halos once on setup
+    const pulseCanvas = createPulseCanvas();
+    const haloCanvas = createHaloCanvas();
 
     // Set canvas size with DPR scaling
     const dpr = window.devicePixelRatio || 1;
@@ -76,20 +125,35 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     stateRef.current = { nodes, edges };
 
-    // Animation loop
+    // Optimized Animation Loop
     const animate = () => {
       if (!isActive) {
         animationRef.current = requestAnimationFrame(animate);
         return;
       }
 
-      // Clear canvas
+      // Clear canvas with trail effect
       ctx.fillStyle = "rgba(15, 23, 42, 0.1)";
       ctx.fillRect(0, 0, width, height);
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // Performance Optimization 1: Batch all edge lines into a single path and single stroke()
+      // Reduces edge stroke calls from O(E) to O(1) per frame.
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
+
+      // Performance Optimization 2: Draw pulses using pre-rendered offscreen canvas texture
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -98,61 +162,49 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
         const fromNode = state.nodes[edge.from];
         const toNode = state.nodes[edge.to];
-
         if (!fromNode || !toNode) return;
 
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
-
-        // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
         const pulseY = fromNode.y + (toNode.y - fromNode.y) * edge.progress;
 
-        const gradient = ctx.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, 8);
-        gradient.addColorStop(0, "rgba(34, 197, 94, 0.8)");
-        gradient.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
-        gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(pulseX, pulseY, 8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.drawImage(pulseCanvas, pulseX - 8, pulseY - 8);
       });
 
-      // Update and draw nodes
+      // Performance Optimization 3: Draw node halos using pre-rendered texture
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
 
-        // Draw halo
         const haloRadius = 6 + node.halo * 4;
-        const haloGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloRadius);
-        haloGradient.addColorStop(0, `rgba(34, 197, 94, ${0.3 * node.halo})`);
-        haloGradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = haloGradient;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node core
-        ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node outline
-        ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.globalAlpha = node.halo;
+        ctx.drawImage(
+          haloCanvas,
+          node.x - haloRadius,
+          node.y - haloRadius,
+          haloRadius * 2,
+          haloRadius * 2
+        );
       });
+      ctx.globalAlpha = 1.0;
+
+      // Performance Optimization 4: Batch node core fills into a single path
+      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 3, node.y);
+        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+      });
+      ctx.fill();
+
+      // Performance Optimization 5: Batch node outline strokes into a single path
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 4, node.y);
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+      });
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(animate);
     };
