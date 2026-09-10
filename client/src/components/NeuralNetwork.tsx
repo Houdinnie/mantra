@@ -76,6 +76,39 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     stateRef.current = { nodes, edges };
 
+    // Performance optimization: Pre-render edge pulse particle sprite on off-screen canvas
+    // to avoid creating radial gradients repeatedly on every frame.
+    const pulseCanvas = document.createElement("canvas");
+    pulseCanvas.width = 16;
+    pulseCanvas.height = 16;
+    const pulseCtx = pulseCanvas.getContext("2d");
+    if (pulseCtx) {
+      const g = pulseCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+      g.addColorStop(0, "rgba(34, 197, 94, 0.8)");
+      g.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
+      g.addColorStop(1, "rgba(34, 197, 94, 0)");
+      pulseCtx.fillStyle = g;
+      pulseCtx.beginPath();
+      pulseCtx.arc(8, 8, 8, 0, Math.PI * 2);
+      pulseCtx.fill();
+    }
+
+    // Performance optimization: Pre-render static node halo sprite on off-screen canvas.
+    // Scaling this pre-rendered sprite is significantly faster than dynamically creating radial gradients per node per frame.
+    const haloCanvas = document.createElement("canvas");
+    haloCanvas.width = 20;
+    haloCanvas.height = 20;
+    const haloCtx = haloCanvas.getContext("2d");
+    if (haloCtx) {
+      const g = haloCtx.createRadialGradient(10, 10, 0, 10, 10, 10);
+      g.addColorStop(0, "rgba(34, 197, 94, 0.3)");
+      g.addColorStop(1, "rgba(34, 197, 94, 0)");
+      haloCtx.fillStyle = g;
+      haloCtx.beginPath();
+      haloCtx.arc(10, 10, 10, 0, Math.PI * 2);
+      haloCtx.fill();
+    }
+
     // Animation loop
     const animate = () => {
       if (!isActive) {
@@ -89,7 +122,22 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // Optimization: Batch all static edge line paths into a single stroke call.
+      // Reduces CPU-to-GPU state switches from O(E) to O(1).
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
+
+      // Update edge progress and draw pulses using the pre-rendered sprite.
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -98,61 +146,44 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
         const fromNode = state.nodes[edge.from];
         const toNode = state.nodes[edge.to];
-
         if (!fromNode || !toNode) return;
 
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
-
-        // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
         const pulseY = fromNode.y + (toNode.y - fromNode.y) * edge.progress;
-
-        const gradient = ctx.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, 8);
-        gradient.addColorStop(0, "rgba(34, 197, 94, 0.8)");
-        gradient.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
-        gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(pulseX, pulseY, 8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.drawImage(pulseCanvas, pulseX - 8, pulseY - 8);
       });
 
-      // Update and draw nodes
+      // Update node states and draw halo sprites
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
 
-        // Draw halo
+        // Draw pre-rendered halo sprite scaled with node opacity/size
         const haloRadius = 6 + node.halo * 4;
-        const haloGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloRadius);
-        haloGradient.addColorStop(0, `rgba(34, 197, 94, ${0.3 * node.halo})`);
-        haloGradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = haloGradient;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node core
-        ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node outline
-        ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
+        const drawSize = haloRadius * 2;
+        ctx.globalAlpha = node.halo;
+        ctx.drawImage(haloCanvas, node.x - haloRadius, node.y - haloRadius, drawSize, drawSize);
       });
+      ctx.globalAlpha = 1.0;
+
+      // Optimization: Batch draw all node cores in a single fill call
+      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 3, node.y);
+        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+      });
+      ctx.fill();
+
+      // Optimization: Batch draw all node outlines in a single stroke call
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 4, node.y);
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+      });
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(animate);
     };
