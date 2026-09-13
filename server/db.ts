@@ -1,9 +1,13 @@
-import { eq, desc, asc, sql, like, and } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and, count, sum, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, chatSessions, chatMessages, userMemory, userNotes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -98,13 +102,28 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
   return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
 }
 
+/**
+ * ⚡ Bolt Optimization: Aggregates user chat session metrics directly in SQL.
+ * Replaces O(N) row fetching, in-memory array iteration, and Array.prototype.sort()
+ * with O(1) database aggregation using COUNT, SUM, and MAX functions.
+ */
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
+
+  const [result] = await db
+    .select({
+      totalSessions: count(chatSessions.id),
+      totalMessages: sum(chatSessions.messageCount),
+      lastActive: max(chatSessions.updatedAt),
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  const totalSessions = result?.totalSessions ?? 0;
+  const totalMessages = result?.totalMessages ? Number(result.totalMessages) : 0;
+  const lastActive = result?.lastActive ? new Date(result.lastActive) : null;
+
   return { totalSessions, totalMessages, lastActive };
 }
 
