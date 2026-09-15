@@ -37,12 +37,22 @@ describe("chat router", () => {
   });
 
   it("should create a new session", async () => {
+    const mockDb = {
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue([{ insertId: 1 }]),
+      }),
+    } as any;
+    const { setDb } = await import("../db");
+    setDb(mockDb);
+
     const caller = chatRouter.createCaller(ctx);
     const result = await caller.createSession();
 
     expect(result.success).toBe(true);
     expect(result.sessionId).toBeDefined();
     expect(result.sessionId).toMatch(/^s_/);
+
+    setDb(null);
   });
 
   it("should reject unauthorized requests", async () => {
