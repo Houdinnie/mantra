@@ -1,0 +1,3 @@
+## 2025-09-15 - In-Memory Database Aggregation Anti-Pattern in server/db.ts
+**Learning:** `getUserStats` was loading all chat sessions into memory and performing array `reduce` and `sort` in JavaScript. For users with large session histories, this consumes unnecessary network bandwidth and memory ($O(N)$ data transfer + $O(N \log N)$ sort). Using Drizzle's `count()`, `sum()`, and `max()` SQL aggregates shifts computation to MySQL and reduces network payload to $O(1)$.
+**Action:** Always check database access patterns in `server/db.ts` for in-memory aggregations or array manipulations, replacing them with native SQL aggregate functions.
