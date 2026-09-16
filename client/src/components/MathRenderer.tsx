@@ -80,13 +80,17 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
   useEffect(() => {
     if (!containerRef.current || !children) return;
 
-    loadKatex().then(() => {
-      if (!containerRef.current) return;
-      const processed = processMathInHTML(containerRef.current.innerHTML);
-      if (processed !== containerRef.current.innerHTML) {
-        containerRef.current.innerHTML = processed;
-      }
-    });
+    // Bolt Optimization: Check rendered container text content for math delimiters ($ or \[ or \() before dynamically importing KaTeX
+    const hasMathNotation = containerRef.current.textContent ? /\$|\\\[|\\\(/.test(containerRef.current.textContent) : false;
+    if (hasMathNotation) {
+      loadKatex().then(() => {
+        if (!containerRef.current) return;
+        const processed = processMathInHTML(containerRef.current.innerHTML);
+        if (processed !== containerRef.current.innerHTML) {
+          containerRef.current.innerHTML = processed;
+        }
+      });
+    }
 
     // Add copy buttons to code blocks
     const codeBlocks = containerRef.current.querySelectorAll("pre code");
