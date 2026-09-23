@@ -386,6 +386,8 @@ export async function* runAgentLoop(
             yield { type: "tool_result", tool: "upload_file", output: toolOutput };
             break;
           }
+
+          case "task_complete": {
             const summary = toolCall.input.summary as string;
             const files = (toolCall.input.files as string[]) || createdFiles;
             yield { type: "task_complete", output: summary, files };

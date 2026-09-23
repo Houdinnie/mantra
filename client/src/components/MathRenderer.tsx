@@ -47,21 +47,30 @@ function renderMath(tex: string, displayMode: boolean): string {
 }
 
 function processMathInHTML(html: string): string {
+  // Performance optimization: check if candidate delimiters exist before running full regex replacements
   // Block math: $$...$$ or \[...\]
-  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_, tex) => {
-    return `<div class="math-block">${renderMath(tex.trim(), true)}</div>`;
-  });
-  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (_, tex) => {
-    return `<div class="math-block">${renderMath(tex.trim(), true)}</div>`;
-  });
+  if (html.includes("$$")) {
+    html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_, tex) => {
+      return `<div class="math-block">${renderMath(tex.trim(), true)}</div>`;
+    });
+  }
+  if (html.includes("\\[")) {
+    html = html.replace(/\\\[([\s\S]*?)\\\]/g, (_, tex) => {
+      return `<div class="math-block">${renderMath(tex.trim(), true)}</div>`;
+    });
+  }
   // Inline math: $...$ (not $$ which we already handled)
-  html = html.replace(/\$([^$\n]+?)\$/g, (_, tex) => {
-    return `<span class="math-inline">${renderMath(tex.trim(), false)}</span>`;
-  });
+  if (html.includes("$")) {
+    html = html.replace(/\$([^$\n]+?)\$/g, (_, tex) => {
+      return `<span class="math-inline">${renderMath(tex.trim(), false)}</span>`;
+    });
+  }
   // \(...\)
-  html = html.replace(/\\\(([\s\S]*?)\\\)/g, (_, tex) => {
-    return `<span class="math-inline">${renderMath(tex.trim(), false)}</span>`;
-  });
+  if (html.includes("\\(")) {
+    html = html.replace(/\\\(([\s\S]*?)\\\)/g, (_, tex) => {
+      return `<span class="math-inline">${renderMath(tex.trim(), false)}</span>`;
+    });
+  }
   return html;
 }
 
@@ -80,13 +89,20 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
   useEffect(() => {
     if (!containerRef.current || !children) return;
 
-    loadKatex().then(() => {
-      if (!containerRef.current) return;
-      const processed = processMathInHTML(containerRef.current.innerHTML);
-      if (processed !== containerRef.current.innerHTML) {
-        containerRef.current.innerHTML = processed;
-      }
-    });
+    // Performance optimization: check container textContent for math delimiters
+    // ($ or \[ or \() before triggering dynamic module loading and KaTeX processing.
+    const textContent = containerRef.current.textContent || children;
+    const hasMath = /\$|\\\[|\\\(/.test(textContent);
+
+    if (hasMath) {
+      loadKatex().then(() => {
+        if (!containerRef.current) return;
+        const processed = processMathInHTML(containerRef.current.innerHTML);
+        if (processed !== containerRef.current.innerHTML) {
+          containerRef.current.innerHTML = processed;
+        }
+      });
+    }
 
     // Add copy buttons to code blocks
     const codeBlocks = containerRef.current.querySelectorAll("pre code");
