@@ -1,0 +1,3 @@
+## 2025-05-18 - [HTML5 Canvas Draw Call Batching and Animation Loop Pausing]
+**Learning:** Calling `ctx.stroke()` per line segment inside loops in HTML5 Canvas animations adds significant CPU overhead. Batching `moveTo` / `lineTo` into a single path and calling `ctx.stroke()` once per frame reduces draw call overhead from O(E) to O(1). Additionally, checking `isActive` outside the `requestAnimationFrame` loop avoids scheduling unnecessary micro-tasks when off-screen or hidden.
+**Action:** Always batch canvas path operations (`stroke`, `fill`) and cancel `requestAnimationFrame` loops when components/canvases are inactive.
