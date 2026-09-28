@@ -80,13 +80,20 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
   useEffect(() => {
     if (!containerRef.current || !children) return;
 
-    loadKatex().then(() => {
-      if (!containerRef.current) return;
-      const processed = processMathInHTML(containerRef.current.innerHTML);
-      if (processed !== containerRef.current.innerHTML) {
-        containerRef.current.innerHTML = processed;
-      }
-    });
+    // Fast-path optimization: perform a quick O(1) delimiter check on children or container text
+    // to avoid dynamic module loading of KaTeX (saving network/bundle overhead) and unnecessary
+    // regex processing passes on non-math content.
+    const hasMath = /\$|\\\[|\\\(/.test(children) || /\$|\\\[|\\\(/.test(containerRef.current.textContent || "");
+
+    if (hasMath) {
+      loadKatex().then(() => {
+        if (!containerRef.current) return;
+        const processed = processMathInHTML(containerRef.current.innerHTML);
+        if (processed !== containerRef.current.innerHTML) {
+          containerRef.current.innerHTML = processed;
+        }
+      });
+    }
 
     // Add copy buttons to code blocks
     const codeBlocks = containerRef.current.querySelectorAll("pre code");
