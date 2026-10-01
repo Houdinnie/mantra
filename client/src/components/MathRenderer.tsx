@@ -80,33 +80,46 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
   useEffect(() => {
     if (!containerRef.current || !children) return;
 
-    loadKatex().then(() => {
-      if (!containerRef.current) return;
-      const processed = processMathInHTML(containerRef.current.innerHTML);
-      if (processed !== containerRef.current.innerHTML) {
-        containerRef.current.innerHTML = processed;
-      }
-    });
+    const textContent = containerRef.current.textContent || "";
+    const strChildren = typeof children === "string" ? children : "";
 
-    // Add copy buttons to code blocks
-    const codeBlocks = containerRef.current.querySelectorAll("pre code");
-    codeBlocks.forEach(block => {
-      const pre = block.parentElement;
-      if (!pre || pre.querySelector(".copy-btn")) return;
+    // Bolt Optimization: Fast-path check for math delimiters (including \begin environment blocks)
+    // before loading KaTeX or running regexes. Avoids asynchronous module loading microtask overhead
+    // and 4 regex passes for non-math text.
+    const mathRegex = /\$|\\\[|\\\(|\\begin/;
+    const hasMath = mathRegex.test(strChildren) || mathRegex.test(textContent);
 
-      const btn = document.createElement("button");
-      btn.className = "copy-btn absolute top-2 right-2 text-xs px-2 py-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity";
-      btn.textContent = "Copy";
-      btn.onclick = () => {
-        navigator.clipboard.writeText(block.textContent ?? "");
-        btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
-      };
+    if (hasMath) {
+      loadKatex().then(() => {
+        if (!containerRef.current) return;
+        const processed = processMathInHTML(containerRef.current.innerHTML);
+        if (processed !== containerRef.current.innerHTML) {
+          containerRef.current.innerHTML = processed;
+        }
+      });
+    }
 
-      pre.style.position = "relative";
-      pre.classList.add("group");
-      pre.appendChild(btn);
-    });
+    // Bolt Optimization: Avoid DOM querySelectorAll unless code blocks (<pre>) are present in content
+    if (strChildren.includes("<pre") || strChildren.includes("```") || (containerRef.current && containerRef.current.innerHTML.includes("<pre"))) {
+      const codeBlocks = containerRef.current.querySelectorAll("pre code");
+      codeBlocks.forEach(block => {
+        const pre = block.parentElement;
+        if (!pre || pre.querySelector(".copy-btn")) return;
+
+        const btn = document.createElement("button");
+        btn.className = "copy-btn absolute top-2 right-2 text-xs px-2 py-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity";
+        btn.textContent = "Copy";
+        btn.onclick = () => {
+          navigator.clipboard.writeText(block.textContent ?? "");
+          btn.textContent = "Copied!";
+          setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+        };
+
+        pre.style.position = "relative";
+        pre.classList.add("group");
+        pre.appendChild(btn);
+      });
+    }
   }, [children]);
 
   return (
@@ -159,6 +172,9 @@ function MathPostProcessor({ content }: { content: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Bolt Optimization: Early return if content contains no math delimiters (or \begin blocks)
+    if (typeof content !== "string" || !/\$|\\\[|\\\(|\\begin/.test(content)) return;
+
     loadKatex().then(() => {
       // Find the sibling Streamdown output and process its rendered HTML
       const parent = ref.current?.parentElement;
