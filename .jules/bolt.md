@@ -1,0 +1,3 @@
+## 2025-05-20 - Fast-path guard checks for MathRenderer / KaTeX
+**Learning:** In components rendering dynamic markdown or HTML with optional heavy post-processing (such as KaTeX math parsing), checking `containerRef.current.textContent` for math delimiters (`$`, `\[`, `\(`, `\begin`) before calling dynamic imports (`loadKatex()`) avoids unnecessary promise/microtask ticks and regex scanning for plain text. Always ensure `typeof children === "string"` before using string methods.
+**Action:** Always check string/DOM content for triggers before calling async asset loaders or running full regex replacement pipelines.
