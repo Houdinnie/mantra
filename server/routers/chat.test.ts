@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -34,6 +35,25 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+    const mockDb: any = {
+      insert: () => ({
+        values: async () => ({ id: 1 }),
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            orderBy: () => ({
+              limit: async () => [],
+            }),
+          }),
+        }),
+      }),
+    };
+    setDb(mockDb);
+  });
+
+  afterEach(() => {
+    setDb(null);
   });
 
   it("should create a new session", async () => {
