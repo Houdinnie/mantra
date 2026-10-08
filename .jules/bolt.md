@@ -1,0 +1,3 @@
+## 2025-05-18 - HTML5 Canvas Draw Call Batching & Idle Loop Control
+**Learning:** In Canvas 2D animations (like `NeuralNetwork.tsx`), issuing `ctx.stroke()` within a loop over network edges creates N separate draw calls per frame. Batching all line segments into a single `beginPath()` pass before calling `stroke()` once drops edge draw calls from N (e.g. ~84) to 1. Additionally, returning early in `useEffect` when `isActive` is false prevents `requestAnimationFrame` from firing callbacks continuously on inactive/hidden elements.
+**Action:** When working with Canvas 2D components, always batch path operations (`moveTo`/`lineTo`) prior to `stroke()` and explicitly halt `requestAnimationFrame` loops on inactive states.
