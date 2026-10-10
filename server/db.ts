@@ -1,9 +1,13 @@
-import { eq, desc, asc, sql, like, and } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and, count, sum, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, chatSessions, chatMessages, userMemory, userNotes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -98,14 +102,31 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
   return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
 }
 
+/**
+ * Bolt Performance Optimization:
+ * Replaced in-memory array fetching, reduce(), and sort() with native SQL aggregate
+ * functions (count(), sum(), max()).
+ *
+ * Time Complexity: Reduced from O(N log N) sorting + O(N) reduce down to O(1) SQL aggregate query.
+ * Space Complexity: Reduced from O(N) transferring and storing all session records in Node memory down to O(1).
+ */
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+  const [res] = await db
+    .select({
+      totalSessions: count(),
+      totalMessages: sum(chatSessions.messageCount),
+      lastActive: max(chatSessions.updatedAt),
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  return {
+    totalSessions: res ? Number(res.totalSessions ?? 0) : 0,
+    totalMessages: res ? Number(res.totalMessages ?? 0) : 0,
+    lastActive: res?.lastActive ? new Date(res.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
