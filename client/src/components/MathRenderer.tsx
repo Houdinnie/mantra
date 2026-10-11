@@ -80,13 +80,20 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
   useEffect(() => {
     if (!containerRef.current || !children) return;
 
-    loadKatex().then(() => {
-      if (!containerRef.current) return;
-      const processed = processMathInHTML(containerRef.current.innerHTML);
-      if (processed !== containerRef.current.innerHTML) {
-        containerRef.current.innerHTML = processed;
-      }
-    });
+    // Check if the rendered text content or children prop contains math delimiters ($ or \[ or \()
+    // before triggering dynamic import of KaTeX and DOM parsing.
+    const textContent = containerRef.current.textContent || (typeof children === "string" ? children : "");
+    const hasMath = /\$|\\\[|\\\(/.test(textContent);
+
+    if (hasMath) {
+      loadKatex().then(() => {
+        if (!containerRef.current) return;
+        const processed = processMathInHTML(containerRef.current.innerHTML);
+        if (processed !== containerRef.current.innerHTML) {
+          containerRef.current.innerHTML = processed;
+        }
+      });
+    }
 
     // Add copy buttons to code blocks
     const codeBlocks = containerRef.current.querySelectorAll("pre code");
@@ -159,6 +166,9 @@ function MathPostProcessor({ content }: { content: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Double check content fast-path before triggering KaTeX loading and DOM querying
+    if (!/\$|\\\[|\\\(/.test(content)) return;
+
     loadKatex().then(() => {
       // Find the sibling Streamdown output and process its rendered HTML
       const parent = ref.current?.parentElement;
