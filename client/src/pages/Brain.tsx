@@ -139,7 +139,7 @@ export default function BrainPage() {
             )}
 
             {/* Active regions */}
-            {online && ctx?.state?.active_regions?.length > 0 && (
+            {online && ctx?.state?.active_regions && ctx.state.active_regions.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Regions</h3>
                 <div className="flex flex-wrap gap-1.5">
@@ -211,7 +211,7 @@ export default function BrainPage() {
             )}
 
             {/* Top concepts */}
-            {online && ctx?.learned?.top_concepts?.length > 0 && (
+            {online && ctx?.learned?.top_concepts && ctx.learned.top_concepts.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Top Concepts Learned</h3>
                 <div className="flex flex-wrap gap-2">
@@ -226,7 +226,7 @@ export default function BrainPage() {
             )}
 
             {/* Cross-references */}
-            {online && ctx?.insights?.cross_references?.length > 0 && (
+            {online && ctx?.insights?.cross_references && ctx.insights.cross_references.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
                   <Zap className="inline w-3 h-3 mr-1 text-yellow-400" />Cross-References Found
@@ -265,7 +265,7 @@ export default function BrainPage() {
             )}
 
             {/* Recent memories */}
-            {online && ctx?.learned?.recent_memories?.length > 0 && (
+            {online && ctx?.learned?.recent_memories && ctx.learned.recent_memories.length > 0 && (
               <div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Recent Memories</h3>
                 <div className="space-y-2">
