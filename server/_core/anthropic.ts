@@ -5,6 +5,7 @@
  */
 
 import { ENV } from "./env";
+import { freeChat, freeChatStream, getFreeLlmConfig } from "./freeLlm";
 
 export type ClaudeMessage = {
   role: "user" | "assistant";
@@ -39,6 +40,9 @@ function buildHeaders() {
 export async function callClaude(params: ClaudeParams): Promise<string> {
   const { system, messages, model = DEFAULT_MODEL, maxTokens = DEFAULT_MAX_TOKENS } = params;
 
+  const free = getFreeLlmConfig();
+  if (free) return freeChat(free, system, messages, maxTokens);
+
   const response = await fetch(API_URL, {
     method: "POST",
     headers: buildHeaders(),
@@ -71,6 +75,12 @@ export async function* streamClaude(
   params: ClaudeParams
 ): AsyncGenerator<string, void, unknown> {
   const { system, messages, model = DEFAULT_MODEL, maxTokens = DEFAULT_MAX_TOKENS } = params;
+
+  const free = getFreeLlmConfig();
+  if (free) {
+    yield* freeChatStream(free, system, messages, maxTokens);
+    return;
+  }
 
   const response = await fetch(API_URL, {
     method: "POST",
