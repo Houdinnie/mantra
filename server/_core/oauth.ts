@@ -4,7 +4,7 @@ import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
-import { localOwnerOpenId } from "./localAuth";
+import { LOCAL_SESSION_MS, isLoopbackRequest, localAuthEnabled, localOwnerOpenId } from "./localAuth";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -14,8 +14,15 @@ function getQueryParam(req: Request, key: string): string | undefined {
 export function registerOAuthRoutes(app: Express) {
   // Opt-in sign-in for local use: AUTH_MODE=local. Signs in as the single owner
   // account without any external OAuth server. Do not enable on a public host.
-  if (ENV.authMode === "local") {
+  if (ENV.authMode === "local" && !localAuthEnabled()) {
+    console.error("[Auth] AUTH_MODE=local ignored: it requires NODE_ENV=development. Local sign-in is disabled.");
+  }
+  if (localAuthEnabled()) {
     app.get("/api/auth/local", async (req: Request, res: Response) => {
+      if (!isLoopbackRequest(req)) {
+        res.status(403).json({ error: "Local sign-in only works from localhost" });
+        return;
+      }
       try {
         const openId = localOwnerOpenId();
         await db.upsertUser({
@@ -26,9 +33,9 @@ export function registerOAuthRoutes(app: Express) {
         });
         const token = await sdk.createSessionToken(openId, {
           name: ENV.ownerName,
-          expiresInMs: ONE_YEAR_MS,
+          expiresInMs: LOCAL_SESSION_MS,
         });
-        res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+        res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(req), maxAge: LOCAL_SESSION_MS });
         res.redirect(302, "/app");
       } catch (error) {
         console.error("[Auth] Local sign-in failed", error);
