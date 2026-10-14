@@ -17,21 +17,21 @@ export default function Dashboard() {
           onClick={() => setView("swarm")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             view === "swarm" 
-              ? "bg-cyan-600 text-white" 
+              ? "bg-amber-600 text-white" 
               : "bg-slate-800 text-slate-400 hover:bg-slate-700"
           }`}
         >
-          🏠 Swarm Hub
+ Swarm Hub
         </button>
         <button
           onClick={() => setView("globe")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             view === "globe" 
-              ? "bg-cyan-600 text-white" 
+              ? "bg-amber-600 text-white" 
               : "bg-slate-800 text-slate-400 hover:bg-slate-700"
           }`}
         >
-          🌍 Globe View
+ Globe View
         </button>
       </div>
 

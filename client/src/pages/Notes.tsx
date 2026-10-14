@@ -50,14 +50,14 @@ export default function Notes() {
       <div className="w-72 bg-slate-900/60 border-r border-slate-800 flex flex-col">
         <div className="p-4 border-b border-slate-800">
           <div className="flex items-center gap-2 mb-3">
-            <Brain className="w-5 h-5 text-purple-400" />
+            <Brain className="w-5 h-5 text-stone-400" />
             <h2 className="font-bold text-lg">Notes</h2>
           </div>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search notes..." className="pl-9 bg-slate-800 border-slate-700 text-sm" />
           </div>
-          <Button onClick={() => setIsCreating(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-sm">
+          <Button onClick={() => setIsCreating(true)} className="w-full bg-stone-600 hover:bg-stone-700 text-sm">
             <Plus className="w-4 h-4 mr-2" /> New Note
           </Button>
         </div>
@@ -66,7 +66,7 @@ export default function Notes() {
           <div className="p-3 border-b border-slate-800 bg-slate-800/50">
             <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Note title..." className="bg-slate-700 border-slate-600 mb-2 text-sm" autoFocus onKeyDown={(e) => e.key === "Enter" && newTitle.trim() && createMutation.mutate({ title: newTitle, content: "" })} />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => createMutation.mutate({ title: newTitle, content: "" })} disabled={!newTitle.trim()} className="flex-1 bg-purple-600 hover:bg-purple-700 text-xs">Create</Button>
+              <Button size="sm" onClick={() => createMutation.mutate({ title: newTitle, content: "" })} disabled={!newTitle.trim()} className="flex-1 bg-stone-600 hover:bg-stone-700 text-xs">Create</Button>
               <Button size="sm" variant="ghost" onClick={() => setIsCreating(false)} className="text-slate-400"><X className="w-4 h-4" /></Button>
             </div>
           </div>
@@ -76,11 +76,11 @@ export default function Notes() {
           <div className="p-2 space-y-1">
             {notesQuery.data?.map((note) => (
               <button key={note.id} onClick={() => selectNote(note as Note)}
-                className={`w-full text-left p-3 rounded-lg transition-colors ${selectedNote?.id === note.id ? "bg-purple-600/20 border border-purple-500/50" : "hover:bg-slate-800/50 border border-transparent"}`}>
+                className={`w-full text-left p-3 rounded-lg transition-colors ${selectedNote?.id === note.id ? "bg-stone-600/20 border border-stone-500/50" : "hover:bg-slate-800/50 border border-transparent"}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate flex items-center gap-1">
-                      {note.pinned && <Pin className="w-3 h-3 text-purple-400 flex-shrink-0" />}
+                      {note.pinned && <Pin className="w-3 h-3 text-stone-400 flex-shrink-0" />}
                       {note.title}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">{new Date(note.updatedAt).toLocaleDateString()}</p>
@@ -113,12 +113,12 @@ export default function Notes() {
                 <h1 className="text-xl font-bold">{selectedNote.title}</h1>
               )}
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" onClick={() => updateMutation.mutate({ id: selectedNote.id, pinned: !selectedNote.pinned })} className={selectedNote.pinned ? "text-purple-400" : "text-slate-500"}>
+                <Button size="sm" variant="ghost" onClick={() => updateMutation.mutate({ id: selectedNote.id, pinned: !selectedNote.pinned })} className={selectedNote.pinned ? "text-stone-400" : "text-slate-500"}>
                   <Pin className="w-4 h-4" />
                 </Button>
                 {isEditing ? (
                   <>
-                    <Button size="sm" onClick={saveEdit} disabled={updateMutation.isPending} className="bg-purple-600 hover:bg-purple-700">
+                    <Button size="sm" onClick={saveEdit} disabled={updateMutation.isPending} className="bg-stone-600 hover:bg-stone-700">
                       <Save className="w-4 h-4 mr-1" /> Save
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}><X className="w-4 h-4" /></Button>

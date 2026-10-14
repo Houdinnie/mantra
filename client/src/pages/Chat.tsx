@@ -16,7 +16,7 @@ function PresenceBar({ users }: { users: Array<{ userId: number; userName: strin
     <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/50 border border-slate-700 rounded-full">
       {users.slice(0, 5).map(u => (
         <div key={u.userId} className="relative" title={u.userName}>
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-6 h-6 rounded-full bg-amber-600 flex items-center justify-center text-xs font-bold text-white">
             {u.userName[0]?.toUpperCase() ?? "?"}
           </div>
           {u.isTyping && <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
@@ -36,13 +36,13 @@ const THINKING_STEPS = [
 ];
 
 const SKILL_COMMANDS = [
-  { cmd: "/task",          label: "Dispatch Task 🦞" },
-  { cmd: "/deepread",      label: "DeepRead URL 📥" },
-  { cmd: "/sandbox",       label: "Open Sandbox 🖥️" },
-  { cmd: "/milliondollaridea", label: "Million Dollar Idea 🥇" },
+  { cmd: "/task",          label: "Dispatch Task" },
+  { cmd: "/deepread",      label: "DeepRead URL" },
+  { cmd: "/sandbox",       label: "Open Sandbox" },
+  { cmd: "/milliondollaridea", label: "Million Dollar Idea" },
   { cmd: "/board", label: "Board Session" },
-  { cmd: "/brain", label: "Brain Status 🧠" },
-  { cmd: "/recall", label: "Brain Recall 🧠" },
+  { cmd: "/brain", label: "Brain Status" },
+  { cmd: "/recall", label: "Brain Recall" },
   { cmd: "/find-community", label: "Find Community" },
   { cmd: "/validate-idea", label: "Validate Idea" },
   { cmd: "/processize", label: "Processize" },
@@ -90,18 +90,18 @@ export default function Chat() {
   const [showMentions, setShowMentions] = useState(false);
 
   const AGENT_MENTIONS_CHAT = [
-    { mention: "@ideator",    label: "💡 Ideator",           desc: "Startup & validation" },
-    { mention: "@tax",        label: "💰 Tax Strategist",    desc: "NHR, UAE, Singapore" },
-    { mention: "@legal",      label: "⚖️ Entity Lawyer",     desc: "LLC, corp, structure" },
-    { mention: "@compliance", label: "🔐 Compliance",        desc: "GDPR, SOC2, KYC" },
-    { mention: "@nomad",      label: "🗺️ Nomad Navigator",   desc: "Visa, relocation" },
-    { mention: "@luxury",     label: "✈️ Luxury Concierge",  desc: "Travel, hotels" },
-    { mention: "@wellness",   label: "🏥 Wellness Director", desc: "Health, longevity" },
-    { mention: "@wealth",     label: "📈 Wealth Architect",  desc: "Portfolio, banking" },
-    { mention: "@ceo",        label: "👑 CEO",               desc: "Strategy & vision" },
-    { mention: "@cfo",        label: "💹 CFO",               desc: "Finance & unit economics" },
-    { mention: "@cto",        label: "⚙️ CTO",               desc: "Architecture & engineering" },
-    { mention: "@cmo",        label: "📣 CMO",               desc: "Marketing & growth" },
+    { mention: "@ideator",    label: "Ideator",           desc: "Startup & validation" },
+    { mention: "@tax",        label: "Tax Strategist",    desc: "NHR, UAE, Singapore" },
+    { mention: "@legal",      label: "Entity Lawyer",     desc: "LLC, corp, structure" },
+    { mention: "@compliance", label: "Compliance",        desc: "GDPR, SOC2, KYC" },
+    { mention: "@nomad",      label: "Nomad Navigator",   desc: "Visa, relocation" },
+    { mention: "@luxury",     label: "Luxury Concierge",  desc: "Travel, hotels" },
+    { mention: "@wellness",   label: "Wellness Director", desc: "Health, longevity" },
+    { mention: "@wealth",     label: "Wealth Architect",  desc: "Portfolio, banking" },
+    { mention: "@ceo",        label: "CEO",               desc: "Strategy & vision" },
+    { mention: "@cfo",        label: "CFO",               desc: "Finance & unit economics" },
+    { mention: "@cto",        label: "CTO",               desc: "Architecture & engineering" },
+    { mention: "@cmo",        label: "CMO",               desc: "Marketing & growth" },
   ];
 
   const atMatch = input.match(/@(\w*)$/);
@@ -250,7 +250,7 @@ export default function Chat() {
             if (event.type === "routing") {
               routingMeta = {
                 persona: event.persona ?? "Mantra",
-                personaEmoji: event.personaEmoji ?? "🤖",
+                personaEmoji: event.personaEmoji ?? "",
                 skill: event.skill ?? null,
                 tier: event.tier ?? null,
               };
@@ -336,7 +336,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex overflow-hidden">
+    <div className="h-screen bg-slate-950 text-white flex overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -354,7 +354,7 @@ export default function Chat() {
         <div className="p-4 border-b border-slate-800">
           <Button
             onClick={handleNewChat}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold"
           >
             <Plus className="w-4 h-4 mr-2" /> New Chat
           </Button>
@@ -367,7 +367,7 @@ export default function Chat() {
                 key={session.sessionId}
                 className={`p-3 rounded-lg cursor-pointer transition-colors group ${
                   sessionId === session.sessionId
-                    ? "bg-cyan-600/20 border border-cyan-500/50"
+                    ? "bg-amber-600/20 border border-amber-500/50"
                     : "bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700"
                 }`}
                 onClick={() => setSessionId(session.sessionId)}
@@ -398,11 +398,11 @@ export default function Chat() {
         <div className="p-2 border-t border-slate-800 grid grid-cols-6 gap-0.5">
           {[
             { icon: <LayoutDashboard className="w-3.5 h-3.5" />, label: "Dash",     path: "/dashboard", color: "" },
-            { icon: <Hash            className="w-3.5 h-3.5" />, label: "Channels", path: "/channels",  color: "hover:text-cyan-300" },
+            { icon: <Hash            className="w-3.5 h-3.5" />, label: "Channels", path: "/channels",  color: "hover:text-amber-300" },
             { icon: <FileText        className="w-3.5 h-3.5" />, label: "Notes",    path: "/notes",     color: "" },
-            { icon: <Zap             className="w-3.5 h-3.5" />, label: "Tasks",    path: "/tasks",     color: "hover:text-cyan-400" },
+            { icon: <Zap             className="w-3.5 h-3.5" />, label: "Tasks",    path: "/tasks",     color: "hover:text-amber-400" },
             { icon: <Terminal        className="w-3.5 h-3.5" />, label: "Box",      path: "/sandbox",   color: "hover:text-green-400" },
-            { icon: <Brain           className="w-3.5 h-3.5" />, label: "Brain",    path: "/brain",     color: "hover:text-violet-400" },
+            { icon: <Brain           className="w-3.5 h-3.5" />, label: "Brain",    path: "/brain",     color: "hover:text-stone-400" },
           ].map(item => (
             <button key={item.path} onClick={() => navigate(item.path)}
               className={`flex flex-col items-center gap-0.5 p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 ${item.color}`}>
@@ -420,7 +420,7 @@ export default function Chat() {
               <button
                 key={s.cmd}
                 onClick={() => insertSkillCommand(s.cmd)}
-                className="w-full text-left px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-cyan-600/20 hover:text-cyan-300 transition-colors font-mono"
+                className="w-full text-left px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-amber-600/20 hover:text-amber-300 transition-colors font-mono"
               >
                 {s.cmd}
                 <span className="text-slate-500 font-sans ml-1">— {s.label}</span>
@@ -443,7 +443,7 @@ export default function Chat() {
             </button>
             <div>
               <h1 className="text-xl font-bold">Mantra</h1>
-              <p className="text-xs text-cyan-400">Powered by Claude · Agent Router Active</p>
+              <p className="text-xs text-amber-400">Powered by Claude · Agent Router Active</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -467,9 +467,9 @@ export default function Chat() {
                     <button
                       key={s.cmd}
                       onClick={() => insertSkillCommand(s.cmd)}
-                      className="px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-600/10 transition-colors text-left"
+                      className="px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-700 hover:border-amber-500/50 hover:bg-amber-600/10 transition-colors text-left"
                     >
-                      <p className="text-xs font-mono text-cyan-400">{s.cmd}</p>
+                      <p className="text-xs font-mono text-amber-400">{s.cmd}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
                     </button>
                   ))}
@@ -482,7 +482,7 @@ export default function Chat() {
                 <div
                   className={`max-w-xl w-full px-4 py-3 rounded-xl ${
                     msg.role === "user"
-                      ? "bg-cyan-600/20 border border-cyan-500/50 text-white"
+                      ? "bg-amber-600/20 border border-amber-500/50 text-white"
                       : "bg-slate-800/50 border border-slate-700 text-slate-100"
                   }`}
                 >
@@ -542,7 +542,7 @@ export default function Chat() {
                 {filteredMentions.map((m) => (
                   <button key={m.mention} onClick={() => insertMentionChat(m.mention)}
                     className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors flex items-center gap-3">
-                    <span className="text-violet-400 font-mono text-sm font-bold">{m.mention}</span>
+                    <span className="text-stone-400 font-mono text-sm font-bold">{m.mention}</span>
                     <span className="text-white text-sm">{m.label}</span>
                     <span className="text-slate-500 text-xs ml-auto">{m.desc}</span>
                   </button>
@@ -561,7 +561,7 @@ export default function Chat() {
                     onClick={() => insertSkillCommand(s.cmd)}
                     className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors flex items-center gap-3"
                   >
-                    <span className="text-cyan-400 font-mono text-sm">{s.cmd}</span>
+                    <span className="text-amber-400 font-mono text-sm">{s.cmd}</span>
                     <span className="text-slate-400 text-sm">{s.label}</span>
                   </button>
                 ))}
@@ -585,12 +585,12 @@ export default function Chat() {
                 }}
                 placeholder="Describe your goal, type / for skills, or @ to route to an agent…"
                 disabled={isLoading}
-                className="bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500"
+                className="bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-amber-500"
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={isLoading || !input.trim()}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
@@ -600,4 +600,4 @@ export default function Chat() {
       </div>
     </div>
   );
-}
+                  }

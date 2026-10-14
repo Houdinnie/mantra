@@ -10,16 +10,16 @@ import {
 } from "lucide-react";
 
 const TEMPLATES = [
-  { id: "morningBriefing", label: "☀️ Morning Briefing", desc: "Daily digest at 7am", params: ["channels"] },
-  { id: "urlMonitor",      label: "🔍 URL Monitor",      desc: "Watch a URL for changes", params: ["url", "checkEveryHours"] },
-  { id: "researchTask",    label: "📚 Research Task",    desc: "Deep-research any topic", params: ["topic"] },
-  { id: "tradingAlert",    label: "📊 Trading Alert",    desc: "Asset price check on schedule", params: ["asset"] },
+  { id: "morningBriefing", label: "Morning Briefing", desc: "Daily digest at 7am", params: ["channels"] },
+  { id: "urlMonitor",      label: "URL Monitor",      desc: "Watch a URL for changes", params: ["url", "checkEveryHours"] },
+  { id: "researchTask",    label: "Research Task",    desc: "Deep-research any topic", params: ["topic"] },
+  { id: "tradingAlert",    label: "Trading Alert",    desc: "Asset price check on schedule", params: ["asset"] },
 ];
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
   completed: <CheckCircle className="w-4 h-4 text-emerald-400" />,
   failed:    <XCircle    className="w-4 h-4 text-red-400" />,
-  running:   <Loader2    className="w-4 h-4 text-cyan-400 animate-spin" />,
+  running:   <Loader2    className="w-4 h-4 text-amber-400 animate-spin" />,
   pending:   <Clock      className="w-4 h-4 text-slate-400" />,
 };
 
@@ -27,10 +27,10 @@ type FlowStep = { id: string; type: string; content?: string; tool?: string; wai
 type Flow = { id?: string; name: string; description?: string; trigger: string; cronExpression?: string; steps: FlowStep[]; enabled?: boolean };
 
 function FlowCard({ flow, onTrigger, onDelete }: { flow: Flow; onTrigger: (id: string) => void; onDelete: (id: string) => void }) {
-  const triggerEmoji = { cron: "⏰", manual: "▶️", webhook: "🔗", message: "💬" }[flow.trigger] ?? "⚡";
+  const triggerEmoji = { cron: "", manual: "", webhook: "", message: "" }[flow.trigger] ?? "";
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 hover:border-cyan-500/30 transition-colors">
+      className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 hover:border-amber-500/30 transition-colors">
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -45,7 +45,7 @@ function FlowCard({ flow, onTrigger, onDelete }: { flow: Flow; onTrigger: (id: s
         </div>
         <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
           <Button size="sm" variant="ghost" onClick={() => flow.id && onTrigger(flow.id)}
-            className="h-7 w-7 p-0 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/30">
+            className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-900/30">
             <Play className="w-3.5 h-3.5" />
           </Button>
           <Button size="sm" variant="ghost" onClick={() => flow.id && onDelete(flow.id)}
@@ -109,7 +109,7 @@ export default function Tasks() {
       {/* Header */}
       <div className="border-b border-slate-800 bg-slate-900/50 px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Zap className="w-5 h-5 text-cyan-400" />
+          <Zap className="w-5 h-5 text-amber-400" />
           <div>
             <h1 className="text-xl font-bold">Task Automation</h1>
             <p className="text-xs text-slate-400">OpenClaw Gateway · Flows · DeepReeder</p>
@@ -147,7 +147,7 @@ export default function Tasks() {
           <button key={t.id} onClick={() => setTab(t.id as any)}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               tab === t.id
-                ? "border-cyan-500 text-cyan-400"
+                ? "border-amber-500 text-amber-400"
                 : "border-transparent text-slate-500 hover:text-slate-300"
             }`}>
             {t.icon}{t.label}
@@ -164,7 +164,7 @@ export default function Tasks() {
               <p className="text-sm text-slate-400">
                 {flowsQuery.data?.length ?? 0} automation{(flowsQuery.data?.length ?? 0) !== 1 ? "s" : ""} configured
               </p>
-              <Button size="sm" onClick={() => setShowNewFlow(!showNewFlow)} className="bg-cyan-600 hover:bg-cyan-700">
+              <Button size="sm" onClick={() => setShowNewFlow(!showNewFlow)} className="bg-amber-600 hover:bg-amber-700">
                 <Plus className="w-4 h-4 mr-1.5" /> New Flow
               </Button>
             </div>
@@ -180,7 +180,7 @@ export default function Tasks() {
                         <button key={t.id} onClick={() => { setSelectedTemplate(t.id); setTemplateParams({}); }}
                           className={`p-3 rounded-lg border text-left transition-colors ${
                             selectedTemplate === t.id
-                              ? "bg-cyan-900/30 border-cyan-500/50"
+                              ? "bg-amber-900/30 border-amber-500/50"
                               : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
                           }`}>
                           <p className="text-sm font-medium">{t.label}</p>
@@ -213,14 +213,14 @@ export default function Tasks() {
 
                     <div className="flex gap-2">
                       <Button size="sm" onClick={submitTemplate} disabled={!selectedTemplate || !online || templateMutation.isPending}
-                        className="bg-cyan-600 hover:bg-cyan-700">
+                        className="bg-amber-600 hover:bg-amber-700">
                         {templateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
                         Create Flow
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => setShowNewFlow(false)} className="text-slate-400">Cancel</Button>
                     </div>
 
-                    {!online && <p className="text-xs text-amber-400 mt-2">⚠️ OpenClaw gateway is offline — flows will be created but not executed</p>}
+                    {!online && <p className="text-xs text-amber-400 mt-2">OpenClaw gateway is offline — flows will be created but not executed</p>}
                   </div>
                 </motion.div>
               )}
@@ -233,7 +233,7 @@ export default function Tasks() {
                   <div className="text-center py-16">
                     <Zap className="w-12 h-12 text-slate-700 mx-auto mb-4" />
                     <p className="text-slate-500 font-medium mb-2">No automations yet</p>
-                    <p className="text-slate-600 text-sm">Create a flow from a template above, or use<br /><code className="text-cyan-400">/task</code> in chat to dispatch tasks ad-hoc.</p>
+                    <p className="text-slate-600 text-sm">Create a flow from a template above, or use<br /><code className="text-amber-400">/task</code> in chat to dispatch tasks ad-hoc.</p>
                   </div>
                 )}
                 {flowsQuery.data?.map((flow: any) => (
@@ -259,20 +259,20 @@ export default function Tasks() {
               value={taskText}
               onChange={e => setTaskText(e.target.value)}
               placeholder={"Examples:\n• Send a summary of my last 5 chat sessions to my Telegram\n• Search the web for the latest news on EURUSD and save to memory\n• Read the file ~/Desktop/todo.txt and create tasks from it\n• Monitor https://news.ycombinator.com and notify me of top AI stories"}
-              className="flex-1 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-white placeholder-slate-600 outline-none focus:border-cyan-500/50 resize-none font-mono min-h-48"
+              className="flex-1 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-white placeholder-slate-600 outline-none focus:border-amber-500/50 resize-none font-mono min-h-48"
             />
 
             <div className="mt-4 flex items-center gap-3">
               <Button
                 onClick={() => taskText.trim() && sendMutation.mutate({ task: taskText.trim() })}
                 disabled={!taskText.trim() || sendMutation.isPending || !online}
-                className="bg-cyan-600 hover:bg-cyan-700 font-semibold"
+                className="bg-amber-600 hover:bg-amber-700 font-semibold"
               >
                 {sendMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
                 Dispatch to OpenClaw
               </Button>
               {!online && <p className="text-xs text-amber-400">OpenClaw is offline</p>}
-              {sendMutation.isSuccess && <p className="text-xs text-emerald-400">✓ Task dispatched — check Ledger for status</p>}
+              {sendMutation.isSuccess && <p className="text-xs text-emerald-400">Task dispatched — check Ledger for status</p>}
             </div>
           </div>
         )}
@@ -282,14 +282,14 @@ export default function Tasks() {
           <div className="h-full flex flex-col p-6 max-w-2xl">
             <h2 className="text-lg font-bold mb-1">DeepRead — URL Ingestion</h2>
             <p className="text-sm text-slate-400 mb-6">
-              Paste one or more URLs. OpenClaw's DeepReeder skill will scrape each one — articles, X/Twitter threads, Reddit posts, YouTube transcripts — convert to clean Markdown, and save to agent memory. Use <code className="text-cyan-400">/recall</code> in chat to surface the content later.
+              Paste one or more URLs. OpenClaw's DeepReeder skill will scrape each one — articles, X/Twitter threads, Reddit posts, YouTube transcripts — convert to clean Markdown, and save to agent memory. Use <code className="text-amber-400">/recall</code> in chat to surface the content later.
             </p>
 
             <textarea
               value={deepReadUrls}
               onChange={e => setDeepReadUrls(e.target.value)}
               placeholder={"One URL per line or space-separated:\n\nhttps://example.com/article\nhttps://x.com/user/status/123456\nhttps://www.reddit.com/r/MachineLearning/comments/xyz/\nhttps://youtube.com/watch?v=dQw4w9WgXcQ"}
-              className="flex-1 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-white placeholder-slate-600 outline-none focus:border-cyan-500/50 resize-none font-mono min-h-48"
+              className="flex-1 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-white placeholder-slate-600 outline-none focus:border-amber-500/50 resize-none font-mono min-h-48"
             />
 
             <div className="mt-4 flex items-center gap-3">
@@ -299,13 +299,13 @@ export default function Tasks() {
                   if (urls.length) deepReadMutation.mutate({ urls });
                 }}
                 disabled={!deepReadUrls.trim() || deepReadMutation.isPending || !online}
-                className="bg-violet-600 hover:bg-violet-700 font-semibold"
+                className="bg-stone-600 hover:bg-stone-700 font-semibold"
               >
                 {deepReadMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
                 Ingest URLs
               </Button>
               {!online && <p className="text-xs text-amber-400">OpenClaw is offline</p>}
-              {deepReadMutation.isSuccess && <p className="text-xs text-emerald-400">✓ Queued — content will be saved to agent memory</p>}
+              {deepReadMutation.isSuccess && <p className="text-xs text-emerald-400">Queued — content will be saved to agent memory</p>}
             </div>
           </div>
         )}
@@ -339,7 +339,7 @@ export default function Tasks() {
                         <span className={`text-xs flex-shrink-0 ${
                           entry.status === "completed" ? "text-emerald-400" :
                           entry.status === "failed" ? "text-red-400" :
-                          entry.status === "running" ? "text-cyan-400" : "text-slate-500"
+                          entry.status === "running" ? "text-amber-400" : "text-slate-500"
                         }`}>{entry.status}</span>
                       </div>
                       {entry.output && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{entry.output}</p>}
