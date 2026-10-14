@@ -12,24 +12,24 @@ import { Loader2, Mic, MicOff, Send, Brain, FileText, MessageSquare, Zap, Termin
 
 // ─── Persona pillars (visual only, clicking routes to chat) ───
 const PILLARS = [
-  { id: "nomad",      name: "Nomad Navigator",   icon: "🗺️", color: "#00f5ff", desc: "Visa, presence, relocation" },
-  { id: "tax",        name: "Tax Strategist",     icon: "💰", color: "#ffd700", desc: "NHR, treaty, entity structuring" },
-  { id: "legal",      name: "Entity Lawyer",      icon: "⚖️", color: "#ff00aa", desc: "LLC, corp, compliance" },
-  { id: "wellness",   name: "Wellness Director",  icon: "🏥", color: "#00ffcc", desc: "Health, longevity, insurance" },
-  { id: "luxury",     name: "Luxury Concierge",   icon: "✈️", color: "#ff6600", desc: "Travel, hotels, VIP access" },
-  { id: "wealth",     name: "Wealth Architect",   icon: "📈", color: "#8844ff", desc: "Portfolio, banking, crypto" },
-  { id: "compliance", name: "Compliance Officer", icon: "🔐", color: "#00ff88", desc: "SOC2, GDPR, KYC/AML" },
+  { id: "nomad",      name: "Nomad Navigator",   icon: "", color: "#00f5ff", desc: "Visa, presence, relocation" },
+  { id: "tax",        name: "Tax Strategist",     icon: "", color: "#ffd700", desc: "NHR, treaty, entity structuring" },
+  { id: "legal",      name: "Entity Lawyer",      icon: "", color: "#ff00aa", desc: "LLC, corp, compliance" },
+  { id: "wellness",   name: "Wellness Director",  icon: "", color: "#00ffcc", desc: "Health, longevity, insurance" },
+  { id: "luxury",     name: "Luxury Concierge",   icon: "", color: "#ff6600", desc: "Travel, hotels, VIP access" },
+  { id: "wealth",     name: "Wealth Architect",   icon: "", color: "#8844ff", desc: "Portfolio, banking, crypto" },
+  { id: "compliance", name: "Compliance Officer", icon: "", color: "#00ff88", desc: "SOC2, GDPR, KYC/AML" },
 ];
 
 const SKILL_SHORTCUTS = [
-  { cmd: "/milliondollaridea", label: "💡 Million Dollar Idea" },
-  { cmd: "/validate-idea",     label: "✅ Validate Idea" },
-  { cmd: "/board",             label: "🏛️ Board Session" },
-  { cmd: "/trading",           label: "📊 Trading Research" },
-  { cmd: "/marketing",         label: "📣 Marketing Agent" },
-  { cmd: "/content",           label: "✍️ Content Agent" },
-  { cmd: "/brain",             label: "🧠 Brain Status" },
-  { cmd: "/digest",            label: "☀️ Morning Digest" },
+  { cmd: "/milliondollaridea", label: "Million Dollar Idea" },
+  { cmd: "/validate-idea",     label: "Validate Idea" },
+  { cmd: "/board",             label: "Board Session" },
+  { cmd: "/trading",           label: "Trading Research" },
+  { cmd: "/marketing",         label: "Marketing Agent" },
+  { cmd: "/content",           label: "Content Agent" },
+  { cmd: "/brain",             label: "Brain Status" },
+  { cmd: "/digest",            label: "Morning Digest" },
 ];
 
 // ─── Live activity feed from real sessions ─────────────────────
@@ -67,12 +67,12 @@ function MorningDigestWidget() {
   }, []);
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800/50 border border-cyan-500/30 rounded-2xl p-5 relative overflow-hidden h-full">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl" />
+    <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-5 relative overflow-hidden h-full">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
       <div className="relative h-full flex flex-col">
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
-          <h3 className="text-sm font-bold text-white">☀️ Morning Digest</h3>
-          {loading && <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />}
+          <h3 className="text-sm font-bold text-white">Morning Digest</h3>
+          {loading && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
         </div>
         <div className="flex-1 overflow-y-auto text-xs text-slate-300 leading-relaxed space-y-1">
           {loading && !digest && (
@@ -84,11 +84,11 @@ function MorningDigestWidget() {
           )}
           {digest && digest.split("\n").filter(Boolean).map((line, i) => (
             <p key={i} className={
-              line.startsWith("##") ? "text-cyan-400 font-bold text-xs mt-2" :
+              line.startsWith("##") ? "text-amber-400 font-bold text-xs mt-2" :
               line.startsWith("###") ? "text-slate-400 font-semibold text-xs mt-1" :
-              line.startsWith("🔴") ? "text-red-400" :
-              line.startsWith("🟡") ? "text-amber-400" :
-              line.startsWith("🟢") ? "text-emerald-400" :
+              line.startsWith("") ? "text-red-400" :
+              line.startsWith("") ? "text-amber-400" :
+              line.startsWith("") ? "text-emerald-400" :
               "text-slate-400"
             }>{line.replace(/^#+\s*/, "")}</p>
           ))}
@@ -104,7 +104,7 @@ function ActivityFeed({ onSelectSession }: { onSelectSession: (id: string) => vo
 
   return (
     <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-4 h-full flex flex-col">
-      <h3 className="text-xs font-bold text-cyan-400 mb-3 flex items-center gap-2 flex-shrink-0">
+      <h3 className="text-xs font-bold text-amber-400 mb-3 flex items-center gap-2 flex-shrink-0">
         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
         Recent Sessions
       </h3>
@@ -121,7 +121,7 @@ function ActivityFeed({ onSelectSession }: { onSelectSession: (id: string) => vo
             onClick={() => onSelectSession(item.sessionId)}
             className="w-full flex items-start gap-2 p-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 cursor-pointer text-left"
           >
-            <MessageSquare className="w-3.5 h-3.5 text-cyan-500 mt-0.5 flex-shrink-0" />
+            <MessageSquare className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-xs text-white font-medium truncate">{item.title}</p>
               <p className="text-xs text-slate-500 truncate">{item.preview}</p>
@@ -155,7 +155,7 @@ function PresenceGauge() {
   return (
     <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-3">
       <h3 className="text-xs font-bold text-white mb-2 flex items-center gap-1">
-        🇵🇹 Portugal Presence
+ Portugal Presence
       </h3>
       {editing ? (
         <div className="flex gap-1">
@@ -165,13 +165,13 @@ function PresenceGauge() {
             placeholder="Days (0-183)"
             className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white"
           />
-          <button onClick={save} className="px-2 py-1 bg-cyan-600 rounded text-xs text-white">✓</button>
+          <button onClick={save} className="px-2 py-1 bg-amber-600 rounded text-xs text-white"></button>
         </div>
       ) : (
         <>
           <div className="flex justify-between text-xs text-slate-400 mb-1">
             <button onClick={() => { setEditing(true); setInput(String(displayDays)); }} className="hover:text-white">
-              {days !== null ? `${displayDays} days` : "Set days →"}
+              {days !== null ? `${displayDays} days` : "Set days"}
             </button>
             <span>{total} limit</span>
           </div>
@@ -293,8 +293,8 @@ function CommandBar({ onNavigate }: { onNavigate: (cmd: string) => void }) {
 
   return (
     <div className="relative flex-1">
-      <div className="flex items-center bg-slate-900/80 border border-cyan-500/30 rounded-xl px-3 py-2 backdrop-blur-xl gap-2">
-        <span className="text-cyan-400 text-sm">⟨</span>
+      <div className="flex items-center bg-slate-900/80 border border-amber-500/30 rounded-xl px-3 py-2 backdrop-blur-xl gap-2">
+        <span className="text-amber-400 text-sm">⟨</span>
         <input ref={inputRef} type="text" value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
@@ -302,7 +302,7 @@ function CommandBar({ onNavigate }: { onNavigate: (cmd: string) => void }) {
           placeholder="Command the swarm… or type / for skills"
           className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-sm"
         />
-        <button onClick={submit} className="text-cyan-500 hover:text-cyan-300">
+        <button onClick={submit} className="text-amber-500 hover:text-amber-300">
           <Send className="w-4 h-4" />
         </button>
       </div>
@@ -353,7 +353,7 @@ export default function SwarmHub() {
       <div className="flex items-center gap-4 mb-5">
         <div>
           <h1 className="text-xl font-bold">
-            <span className="text-cyan-400">VENTURE</span><span className="text-white">MIND</span>
+            <span className="text-amber-400">VENTURE</span><span className="text-white">MIND</span>
           </h1>
           <p className="text-xs text-slate-500">Neon Nomad Empire · 7 Pillars</p>
         </div>
@@ -365,7 +365,7 @@ export default function SwarmHub() {
         <PresenceGauge />
 
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate("/channels")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-cyan-300">
+          <button onClick={() => navigate("/channels")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-amber-300">
             # Channels
           </button>
           <button onClick={() => navigate("/notes")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
@@ -374,14 +374,14 @@ export default function SwarmHub() {
           <button onClick={() => navigate("/sandbox")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-green-400">
             <Terminal className="w-3.5 h-3.5" /> Sandbox
           </button>
-          <button onClick={() => navigate("/tasks")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-cyan-400">
+          <button onClick={() => navigate("/tasks")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-amber-400">
             <Zap className="w-3.5 h-3.5" /> Tasks
           </button>
-          <button onClick={() => navigate("/brain")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-violet-400">
+          <button onClick={() => navigate("/brain")} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-stone-400">
             <Brain className="w-3.5 h-3.5" /> Brain
           </button>
-          <button onClick={() => navigate("/app")} className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-xs font-semibold">
-            Open Chat →
+          <button onClick={() => navigate("/app")} className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 rounded-lg text-xs font-semibold">
+            Open Chat
           </button>
         </div>
       </div>
@@ -415,7 +415,7 @@ export default function SwarmHub() {
           <div className="space-y-1">
             {SKILL_SHORTCUTS.slice(0, 5).map(s => (
               <button key={s.cmd} onClick={() => goToChat(s.cmd)}
-                className="w-full text-left px-3 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-cyan-500/30 transition-colors">
+                className="w-full text-left px-3 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-amber-500/30 transition-colors">
                 <span className="text-xs text-slate-200">{s.label}</span>
               </button>
             ))}
