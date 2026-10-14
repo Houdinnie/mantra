@@ -290,6 +290,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (sandbox) {
         await killSandbox(sandbox);
@@ -304,6 +307,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (!sandbox) return { alive: false, sandboxId: null, mode: null };
       const alive = await isSandboxAlive(sandbox);
@@ -315,6 +321,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string(), path: z.string().default(".") }))
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (!sandbox) return [];
       return listFilesInSandbox(sandbox, input.path);
@@ -325,6 +334,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string(), path: z.string() }))
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (!sandbox) throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not found" });
       const content = await readFileInSandbox(sandbox, input.path);
