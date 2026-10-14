@@ -139,11 +139,11 @@ export default function BrainPage() {
             )}
 
             {/* Active regions */}
-            {online && ctx?.state?.active_regions?.length > 0 && (
+            {online && (ctx?.state?.active_regions?.length ?? 0) > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Regions</h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {ctx.state.active_regions.map((r) => (
+                  {ctx!.state!.active_regions!.map((r) => (
                     <span key={r} className="text-xs px-2 py-1 rounded-full bg-violet-900/40 border border-violet-500/30 text-violet-300">{r.replace(/_/g, " ")}</span>
                   ))}
                 </div>
@@ -211,11 +211,11 @@ export default function BrainPage() {
             )}
 
             {/* Top concepts */}
-            {online && ctx?.learned?.top_concepts?.length > 0 && (
+            {online && (ctx?.learned?.top_concepts?.length ?? 0) > 0 && (
               <div className="mb-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Top Concepts Learned</h3>
                 <div className="flex flex-wrap gap-2">
-                  {ctx.learned.top_concepts.slice(0, 20).map((c: any) => (
+                  {ctx!.learned!.top_concepts!.slice(0, 20).map((c: any) => (
                     <button key={c.concept} onClick={() => { setRecallQuery(c.concept); setSubmitted(c.concept); }}
                       className="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-violet-600/10 transition-colors text-sm text-slate-300">
                       {c.concept} <span className="text-xs text-slate-500">×{c.count}</span>
@@ -226,13 +226,13 @@ export default function BrainPage() {
             )}
 
             {/* Cross-references */}
-            {online && ctx?.insights?.cross_references?.length > 0 && (
+            {online && (ctx?.insights?.cross_references?.length ?? 0) > 0 && (
               <div className="mb-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
                   <Zap className="inline w-3 h-3 mr-1 text-yellow-400" />Cross-References Found
                 </h3>
                 <div className="space-y-2">
-                  {ctx.insights.cross_references.slice(0, 5).map((r: any, i: number) => (
+                  {ctx!.insights!.cross_references!.slice(0, 5).map((r: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 p-2 bg-slate-800/30 border border-slate-700 rounded-lg text-sm">
                       <span className="text-violet-300 font-medium">{r.a}</span>
                       <span className="text-slate-600">↔</span>
@@ -265,11 +265,11 @@ export default function BrainPage() {
             )}
 
             {/* Recent memories */}
-            {online && ctx?.learned?.recent_memories?.length > 0 && (
+            {online && (ctx?.learned?.recent_memories?.length ?? 0) > 0 && (
               <div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Recent Memories</h3>
                 <div className="space-y-2">
-                  {ctx.learned.recent_memories.slice(0, 8).map((m: any, i: number) => (
+                  {ctx!.learned!.recent_memories!.slice(0, 8).map((m: any, i: number) => (
                     <div key={i} className="p-3 bg-slate-800/30 border border-slate-700 rounded-lg">
                       <div className="flex justify-between mb-1">
                         <span className="text-xs text-violet-400">{m.source}</span>

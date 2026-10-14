@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import NeuralGlobe from "./NeuralGlobe";
+import NeuralGlobe from "../components/NeuralGlobe";
 
 // 7 Pillars data
 const PILLARS = [
