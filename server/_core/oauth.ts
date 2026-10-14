@@ -3,6 +3,8 @@ import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+import { ENV } from "./env";
+import { localOwnerOpenId } from "./localAuth";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -10,6 +12,31 @@ function getQueryParam(req: Request, key: string): string | undefined {
 }
 
 export function registerOAuthRoutes(app: Express) {
+  // Opt-in sign-in for local use: AUTH_MODE=local. Signs in as the single owner
+  // account without any external OAuth server. Do not enable on a public host.
+  if (ENV.authMode === "local") {
+    app.get("/api/auth/local", async (req: Request, res: Response) => {
+      try {
+        const openId = localOwnerOpenId();
+        await db.upsertUser({
+          openId,
+          name: ENV.ownerName,
+          loginMethod: "local",
+          lastSignedIn: new Date(),
+        });
+        const token = await sdk.createSessionToken(openId, {
+          name: ENV.ownerName,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+        res.redirect(302, "/app");
+      } catch (error) {
+        console.error("[Auth] Local sign-in failed", error);
+        res.status(500).json({ error: "Local sign-in failed" });
+      }
+    });
+  }
+
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
