@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { localAuthEnabled } from "./localAuth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -70,7 +71,9 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
+  // Local sign-in is only safe on the loopback interface.
+  const host = localAuthEnabled() ? "127.0.0.1" : undefined;
+  server.listen(port, host as string, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
 }

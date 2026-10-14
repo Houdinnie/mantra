@@ -1,5 +1,6 @@
 import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
+import { isLocalAuth, localOwnerOpenId, localOwnerUser } from "./localAuth";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
@@ -269,6 +270,11 @@ class SDKServer {
     const sessionUserId = session.openId;
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
+
+    // Local mode: no OAuth server to sync from, so fall back to the owner record.
+    if (!user && isLocalAuth() && sessionUserId === localOwnerOpenId()) {
+      return localOwnerUser(sessionUserId);
+    }
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
