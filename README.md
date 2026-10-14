@@ -1,7 +1,7 @@
 # Mantra — AI Co-Founder Platform
 
 <p align="center">
-  <img src="https://i.imgur.com/placeholder-logo.png" alt="Mantra AI" width="400"/>
+  <img src="https://github.com/Houdinnie/mantra" alt="Mantra AI Co-Founder Platform" width="400"/>
 </p>
 
 <p align="center">
@@ -263,6 +263,28 @@ mantra/
 ```
 
 ---
+
+
+
+## V2 Engineering Notes
+
+Mantra v2 is being hardened around a few rules: documented capabilities must be distinguishable from verified integrations; execution tools must be treated as privileged; and deployment health must be observable without exposing secrets.
+
+### Runtime health
+
+The server exposes `GET /health` for process-level liveness. It does not claim that the database, model provider, or external integrations are healthy. Those need separate, dependency-aware checks before production use.
+
+### Security baseline
+
+- Apply baseline browser security headers at the Express entry point.
+- Keep request-body limits explicit; file uploads should use their dedicated upload handlers.
+- Do not expose sandbox, code execution, payments, or external automation to unauthenticated users.
+- Keep secrets in environment variables or a secrets manager; never commit credentials.
+- Treat agent output and retrieved web content as untrusted input.
+
+### Verification status
+
+The feature catalog below describes intended capabilities, not proof that every integration is configured or operational. Before production deployment, run `pnpm check`, `pnpm test`, and `pnpm build`, then validate authentication, authorization, sandbox isolation, and provider credentials in the target environment.
 
 ## 📖 License
 
