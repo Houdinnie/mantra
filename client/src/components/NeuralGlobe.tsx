@@ -48,7 +48,7 @@ function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolea
   return (
     <group position={node.position}>
       <Sphere
-        ref={meshRef}
+        ref={meshRef as any}
         args={[node.size, 32, 32]}
         onPointerOver={() => { setHovered(true); onHover(node.id); }}
         onPointerOut={() => { setHovered(false); onHover(null); }}
@@ -74,7 +74,7 @@ function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolea
 }
 
 function ConnectionLines({ nodes, activeId }: { nodes: Node[]; activeId: string | null }) {
-  const lines: JSX.Element[] = [];
+  const lines: React.ReactElement[] = [];
   
   nodes.forEach((node) => {
     node.connections.forEach((connId) => {
@@ -138,7 +138,7 @@ function ParticleField() {
   return (
     <points ref={mesh}>
       <bufferGeometry>
-        <bufferAttribute
+        <bufferAttribute args={[positions, 3]}
           attach="attributes-position"
           count={count}
           array={positions}
