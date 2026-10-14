@@ -1,3 +1,4 @@
+import { getFreeLlmConfig } from "./freeLlm";
 import { ENV } from "./env";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
@@ -266,7 +267,8 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  const free = getFreeLlmConfig();
+  if (!free) assertApiKey();
 
   const {
     messages,
@@ -280,7 +282,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: free ? free.model : "gemini-2.5-flash",
     messages: messages.map(normalizeMessage),
   };
 
@@ -296,9 +298,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  payload.max_tokens = free ? 4096 : 32768
+  if (!free) {
+    payload.thinking = {
+      "budget_tokens": 128
+    }
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -312,11 +316,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(free ? `${free.baseUrl}/chat/completions` : resolveApiUrl(), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${free ? free.apiKey : ENV.forgeApiKey}`,
     },
     body: JSON.stringify(payload),
   });
