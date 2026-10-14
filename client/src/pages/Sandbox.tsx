@@ -33,13 +33,13 @@ type FileEntry = { name: string; type: "file" | "dir"; path: string; size?: numb
 
 // ─── Tool icons / colours ──────────────────────────────────────
 const TOOL_META: Record<string, { emoji: string; color: string }> = {
-  shell:         { emoji: "💻", color: "text-green-400" },
-  write_file:    { emoji: "📝", color: "text-blue-400" },
-  read_file:     { emoji: "📖", color: "text-slate-400" },
-  list_files:    { emoji: "📁", color: "text-yellow-400" },
-  browser:       { emoji: "🌐", color: "text-purple-400" },
-  upload_file:   { emoji: "📤", color: "text-orange-400" },
-  task_complete: { emoji: "✅", color: "text-emerald-400" },
+  shell:         { emoji: "", color: "text-green-400" },
+  write_file:    { emoji: "", color: "text-blue-400" },
+  read_file:     { emoji: "", color: "text-slate-400" },
+  list_files:    { emoji: "", color: "text-yellow-400" },
+  browser:       { emoji: "", color: "text-stone-400" },
+  upload_file:   { emoji: "", color: "text-orange-400" },
+  task_complete: { emoji: "", color: "text-emerald-400" },
 };
 
 // ─── Event row ─────────────────────────────────────────────────
@@ -53,7 +53,7 @@ function EventRow({ event }: { event: EventLogEntry }) {
   if (event.type === "sandbox_ready") {
     return (
       <div className="text-xs text-emerald-400 bg-emerald-900/20 border border-emerald-500/20 rounded px-3 py-1.5 my-1">
-        🏗️ Sandbox ready · {event.mode} mode · {event.workdir}
+ Sandbox ready · {event.mode} mode · {event.workdir}
       </div>
     );
   }
@@ -61,7 +61,7 @@ function EventRow({ event }: { event: EventLogEntry }) {
   if (event.type === "thinking") {
     return (
       <div className="my-1">
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-xs text-cyan-300 hover:text-cyan-200 w-full text-left">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-xs text-amber-300 hover:text-amber-200 w-full text-left">
           <Brain className="w-3 h-3 flex-shrink-0" />
           <span className="truncate">{event.text.split("\n")[0].slice(0, 100)}</span>
           <ChevronRight className={`w-3 h-3 ml-auto flex-shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} />
@@ -76,11 +76,11 @@ function EventRow({ event }: { event: EventLogEntry }) {
   }
 
   if (event.type === "tool_call") {
-    const meta = TOOL_META[event.tool] ?? { emoji: "⚡", color: "text-slate-400" };
+    const meta = TOOL_META[event.tool] ?? { emoji: "", color: "text-slate-400" };
     const preview = event.tool === "shell"
       ? (event.input.command as string)?.split("\n")[0]?.slice(0, 80)
       : event.tool === "write_file"
-      ? `→ ${event.input.path}`
+      ? `${event.input.path}`
       : event.tool === "browser_fetch"
       ? (event.input.url as string)?.slice(0, 60)
       : event.tool === "task_complete"
@@ -109,7 +109,7 @@ function EventRow({ event }: { event: EventLogEntry }) {
       <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-start gap-2 py-0.5 text-left">
         <span className={`text-xs mt-0.5 font-mono ${isErr ? "text-red-400" : "text-slate-500"}`}>
-          {isErr ? "✗" : "✓"}
+          {isErr ? "" : ""}
         </span>
         <span className={`text-xs truncate flex-1 ${isErr ? "text-red-300" : "text-slate-400"}`}>
           {event.output.split("\n")[0].slice(0, 100)}
@@ -224,13 +224,13 @@ function UploadZone({ sessionId, userId, onUploaded }: {
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
-          dragging ? "border-cyan-500 bg-cyan-900/20" : "border-slate-700 hover:border-slate-600"
+          dragging ? "border-amber-500 bg-amber-900/20" : "border-slate-700 hover:border-slate-600"
         }`}
       >
         <input ref={inputRef} type="file" multiple className="hidden"
           onChange={e => Array.from(e.target.files ?? []).forEach(uploadFile)} />
         {uploading
-          ? <p className="text-xs text-cyan-400 flex items-center justify-center gap-2"><Loader2 className="w-3 h-3 animate-spin" />Uploading...</p>
+          ? <p className="text-xs text-amber-400 flex items-center justify-center gap-2"><Loader2 className="w-3 h-3 animate-spin" />Uploading...</p>
           : <p className="text-xs text-slate-500"><Upload className="w-3 h-3 inline mr-1" />Drop files or click to upload into sandbox</p>
         }
       </div>
@@ -293,7 +293,7 @@ function FileViewer({ sessionId }: { sessionId: string }) {
                   <a
                     href={`/api/sandbox/download?sessionId=${encodeURIComponent(sessionId)}&path=${encodeURIComponent(selectedPath)}`}
                     download
-                    className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
+                    className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300"
                   >
                     <Download className="w-3 h-3" /> Download
                   </a>
@@ -430,13 +430,13 @@ export default function SandboxPage() {
         <button onClick={() => navigate("/app")} className="text-slate-500 hover:text-white">
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <Terminal className="w-5 h-5 text-cyan-400" />
+        <Terminal className="w-5 h-5 text-amber-400" />
         <div>
           <h1 className="text-base font-bold">Mantra Sandbox</h1>
           <p className="text-xs text-slate-500">
             {capabilitiesQuery.data?.docker
-              ? "🐳 Docker · isolated containers"
-              : "⚡ Process mode · restricted sandbox"}
+              ? "Docker · isolated containers"
+              : "Process mode · restricted sandbox"}
           </p>
         </div>
 
@@ -444,12 +444,12 @@ export default function SandboxPage() {
           <div className="flex items-center gap-2 ml-2">
             <div className="flex gap-1">
               {[...Array(5)].map((_, i) => (
-                <motion.div key={i} className="w-1 h-3 bg-cyan-500 rounded-full"
+                <motion.div key={i} className="w-1 h-3 bg-amber-500 rounded-full"
                   animate={{ scaleY: [0.4, 1, 0.4] }}
                   transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.1 }} />
               ))}
             </div>
-            <span className="text-xs text-cyan-400">Step {step}</span>
+            <span className="text-xs text-amber-400">Step {step}</span>
           </div>
         )}
 
@@ -481,7 +481,7 @@ export default function SandboxPage() {
         />
         <Button onClick={running ? stopTask : runTask}
           disabled={!task.trim() || !userId}
-          className={running ? "bg-red-600 hover:bg-red-700" : "bg-cyan-600 hover:bg-cyan-700"}>
+          className={running ? "bg-red-600 hover:bg-red-700" : "bg-amber-600 hover:bg-amber-700"}>
           {running
             ? <><Square className="w-4 h-4 mr-1.5" />Stop</>
             : <><Play className="w-4 h-4 mr-1.5" />Run</>}
@@ -501,7 +501,7 @@ export default function SandboxPage() {
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id as any)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-                  activeTab === t.id ? "border-cyan-500 text-cyan-400" : "border-transparent text-slate-500 hover:text-slate-300"
+                  activeTab === t.id ? "border-amber-500 text-amber-400" : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}>
                 {t.icon}{t.label}
               </button>
@@ -521,8 +521,8 @@ export default function SandboxPage() {
                   <div className="space-y-2 w-full max-w-lg">
                     {EXAMPLE_TASKS.map((ex, i) => (
                       <button key={i} onClick={() => setTask(ex)}
-                        className="w-full text-left px-4 py-2.5 bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 hover:bg-slate-800/60 rounded-lg text-xs text-slate-400 hover:text-slate-200 transition-colors">
-                        <ChevronRight className="inline w-3 h-3 mr-1.5 text-cyan-600" />{ex}
+                        className="w-full text-left px-4 py-2.5 bg-slate-900/60 border border-slate-800 hover:border-amber-500/30 hover:bg-slate-800/60 rounded-lg text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                        <ChevronRight className="inline w-3 h-3 mr-1.5 text-amber-600" />{ex}
                       </button>
                     ))}
                   </div>
@@ -534,7 +534,7 @@ export default function SandboxPage() {
                   <EventRow key={event.id} event={event} />
                 ))}
                 {running && (
-                  <motion.div className="flex items-center gap-2 mt-2 text-xs text-cyan-400"
+                  <motion.div className="flex items-center gap-2 mt-2 text-xs text-amber-400"
                     animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.4, repeat: Infinity }}>
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Agent working...
@@ -556,7 +556,7 @@ export default function SandboxPage() {
             <div className="flex-1 overflow-auto p-4">
               <h2 className="text-sm font-bold mb-1">Upload Files into Sandbox</h2>
               <p className="text-xs text-slate-400 mb-4">
-                Files land in <code className="text-cyan-400">/workspace/</code>. The agent can read and process them immediately.
+                Files land in <code className="text-amber-400">/workspace/</code>. The agent can read and process them immediately.
               </p>
               <UploadZone sessionId={sessionId} userId={userId} onUploaded={handleUpload} />
             </div>
@@ -565,4 +565,4 @@ export default function SandboxPage() {
       </div>
     </div>
   );
-}
+    }
