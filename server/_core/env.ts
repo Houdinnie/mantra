@@ -10,6 +10,10 @@ export const ENV = {
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+  llmProvider: process.env.LLM_PROVIDER ?? "",
+  llmBaseUrl: process.env.LLM_BASE_URL ?? "",
+  llmApiKey: process.env.LLM_API_KEY ?? "",
+  llmModel: process.env.LLM_MODEL ?? "",
   openclawUrl: process.env.OPENCLAW_URL ?? "http://localhost:18789",
   openclawToken: process.env.OPENCLAW_TOKEN ?? "",
 };
