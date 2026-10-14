@@ -163,7 +163,7 @@ function ChannelChat({ channel, userId }: { channel: Channel; userId: number }) 
               <div className="text-5xl mb-4">{channel.emoji}</div>
               <h3 className="text-lg font-bold text-slate-400 mb-2">{channel.name}</h3>
               <p className="text-sm text-slate-600 mb-4">{channel.description ?? "Your dedicated AI channel"}</p>
-              <p className="text-xs text-slate-600">Type a message or use <code className="text-cyan-400">@mention</code> to route to a specific agent</p>
+              <p className="text-xs text-slate-600">Type a message or use <code className="text-amber-400">@mention</code> to route to a specific agent</p>
             </div>
           )}
 
@@ -216,7 +216,7 @@ function ChannelChat({ channel, userId }: { channel: Channel; userId: number }) 
               {filteredMentions.map(m => (
                 <button key={m.mention} onClick={() => insertMention(m.mention)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800 text-left">
-                  <span className="text-cyan-400 font-mono text-sm font-bold">{m.mention}</span>
+                  <span className="text-amber-400 font-mono text-sm font-bold">{m.mention}</span>
                   <span className="text-white text-sm">{m.label}</span>
                   <span className="text-slate-500 text-xs ml-auto">{m.desc}</span>
                 </button>
@@ -329,7 +329,7 @@ function ChannelEditor({ channel, onSave, onClose }: {
 
       <div className="flex gap-2 pt-2">
         <Button onClick={save} disabled={!name.trim() || createMutation.isPending || updateMutation.isPending}
-          className="flex-1 bg-cyan-600 hover:bg-cyan-700">
+          className="flex-1 bg-amber-600 hover:bg-amber-700">
           {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
           {channel?.id ? "Save Changes" : "Create Channel"}
         </Button>
@@ -375,7 +375,7 @@ export default function ChannelsPage() {
             </div>
             <div className="flex gap-1">
               <Button size="sm" variant="ghost" onClick={() => setShowPresets(!showPresets)} className="text-slate-400 text-xs">Presets</Button>
-              <Button size="sm" onClick={() => { setEditingChannel(null); setShowEditor(true); }} className="bg-cyan-600 hover:bg-cyan-700 h-7 w-7 p-0">
+              <Button size="sm" onClick={() => { setEditingChannel(null); setShowEditor(true); }} className="bg-amber-600 hover:bg-amber-700 h-7 w-7 p-0">
                 <Plus className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -392,7 +392,7 @@ export default function ChannelsPage() {
                     <label key={p.personaId} className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-slate-800/50">
                       <input type="checkbox" checked={selectedPresets.includes(p.personaId)}
                         onChange={e => setSelectedPresets(prev => e.target.checked ? [...prev, p.personaId] : prev.filter(x => x !== p.personaId))}
-                        className="accent-cyan-500" />
+                        className="accent-amber-500" />
                       <span>{p.emoji}</span>
                       <span className="text-sm">{p.name}</span>
                     </label>
@@ -400,7 +400,7 @@ export default function ChannelsPage() {
                 </div>
                 <Button size="sm" onClick={() => presetsMutation.mutate({ presetIds: selectedPresets })}
                   disabled={!selectedPresets.length || presetsMutation.isPending}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-xs">
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-xs">
                   Add {selectedPresets.length} channel{selectedPresets.length !== 1 ? "s" : ""}
                 </Button>
               </motion.div>
@@ -455,7 +455,7 @@ export default function ChannelsPage() {
           <div className="space-y-0.5 max-h-32 overflow-y-auto">
             {AGENT_MENTIONS.slice(0,6).map(m => (
               <div key={m.mention} className="flex items-center gap-2 px-1 py-0.5">
-                <span className="text-xs font-mono text-cyan-600">{m.mention}</span>
+                <span className="text-xs font-mono text-amber-600">{m.mention}</span>
                 <span className="text-xs text-slate-600 truncate">{m.desc}</span>
               </div>
             ))}
@@ -472,7 +472,7 @@ export default function ChannelsPage() {
             <div className="text-6xl mb-5">📡</div>
             <h2 className="text-2xl font-bold text-slate-600 mb-2">Select a Channel</h2>
             <p className="text-slate-600 text-sm max-w-sm">Each channel is an independent agent context with its own persona, system prompt, and message history.</p>
-            <p className="text-slate-700 text-xs mt-4">Use <code className="text-cyan-700">@mention</code> inside any channel to route to a specific agent</p>
+            <p className="text-slate-700 text-xs mt-4">Use <code className="text-amber-700">@mention</code> inside any channel to route to a specific agent</p>
           </div>
         </div>
       )}
