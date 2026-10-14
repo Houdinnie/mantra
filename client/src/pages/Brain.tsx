@@ -72,7 +72,7 @@ export default function BrainPage() {
       {/* Header */}
       <div className="border-b border-slate-800 bg-slate-900/50 px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Brain className="w-6 h-6 text-violet-400" />
+          <Brain className="w-6 h-6 text-stone-400" />
           <div>
             <h1 className="text-xl font-bold">NeuroLinked Brain</h1>
             <p className="text-xs text-slate-400">100,000 neuron neuromorphic system</p>
@@ -93,7 +93,7 @@ export default function BrainPage() {
             <RefreshCw className="w-4 h-4" />
           </Button>
           {online && (
-            <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-violet-600 hover:bg-violet-700 text-xs">
+            <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-stone-600 hover:bg-stone-700 text-xs">
               <Save className="w-4 h-4 mr-1" /> Save Brain
             </Button>
           )}
@@ -118,7 +118,7 @@ export default function BrainPage() {
                   ].map((s) => (
                     <div key={s.label} className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
                       <p className="text-xs text-slate-500">{s.label}</p>
-                      <p className="text-sm font-bold text-violet-300">{s.value}</p>
+                      <p className="text-sm font-bold text-stone-300">{s.value}</p>
                     </div>
                   ))}
                 </div>
@@ -144,7 +144,7 @@ export default function BrainPage() {
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Regions</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {ctx!.state!.active_regions!.map((r) => (
-                    <span key={r} className="text-xs px-2 py-1 rounded-full bg-violet-900/40 border border-violet-500/30 text-violet-300">{r.replace(/_/g, " ")}</span>
+                    <span key={r} className="text-xs px-2 py-1 rounded-full bg-stone-900/40 border border-stone-500/30 text-stone-300">{r.replace(/_/g, " ")}</span>
                   ))}
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function BrainPage() {
                 className="bg-slate-800 border-slate-700 text-sm"
                 disabled={!online}
               />
-              <Button onClick={submitRecall} disabled={!online || !recallQuery.trim()} className="bg-violet-600 hover:bg-violet-700">
+              <Button onClick={submitRecall} disabled={!online || !recallQuery.trim()} className="bg-stone-600 hover:bg-stone-700">
                 <Search className="w-4 h-4" />
               </Button>
             </div>
@@ -194,7 +194,7 @@ export default function BrainPage() {
                     {(recallQuery_.data ?? []).map((m: any, i: number) => (
                       <div key={i} className="p-3 bg-slate-800/40 border border-slate-700 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-violet-400">{m.source}</span>
+                          <span className="text-xs text-stone-400">{m.source}</span>
                           <span className="text-xs text-slate-500">score: {m.score?.toFixed(3)}</span>
                         </div>
                         <p className="text-sm text-slate-200 leading-relaxed">{m.text}</p>
@@ -217,7 +217,7 @@ export default function BrainPage() {
                 <div className="flex flex-wrap gap-2">
                   {ctx!.learned!.top_concepts!.slice(0, 20).map((c: any) => (
                     <button key={c.concept} onClick={() => { setRecallQuery(c.concept); setSubmitted(c.concept); }}
-                      className="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-violet-600/10 transition-colors text-sm text-slate-300">
+                      className="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-stone-500/50 hover:bg-stone-600/10 transition-colors text-sm text-slate-300">
                       {c.concept} <span className="text-xs text-slate-500">×{c.count}</span>
                     </button>
                   ))}
@@ -234,9 +234,9 @@ export default function BrainPage() {
                 <div className="space-y-2">
                   {ctx!.insights!.cross_references!.slice(0, 5).map((r: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 p-2 bg-slate-800/30 border border-slate-700 rounded-lg text-sm">
-                      <span className="text-violet-300 font-medium">{r.a}</span>
-                      <span className="text-slate-600">↔</span>
-                      <span className="text-violet-300 font-medium">{r.b}</span>
+                      <span className="text-stone-300 font-medium">{r.a}</span>
+                      <span className="text-slate-600"></span>
+                      <span className="text-stone-300 font-medium">{r.b}</span>
                       <span className="ml-auto text-xs text-slate-500">{r.strength?.toFixed(2)}</span>
                     </div>
                   ))}
@@ -252,7 +252,7 @@ export default function BrainPage() {
                 </h3>
                 <div className="space-y-2">
                   {sleepQuery.data.map((ins: any, i: number) => (
-                    <div key={i} className={`p-3 border rounded-lg ${ins.kind === "cross-reference" ? "bg-violet-900/20 border-violet-500/30" : ins.kind === "pattern" ? "bg-amber-900/20 border-amber-500/30" : "bg-slate-800/40 border-slate-700"}`}>
+                    <div key={i} className={`p-3 border rounded-lg ${ins.kind === "cross-reference" ? "bg-stone-900/20 border-stone-500/30" : ins.kind === "pattern" ? "bg-amber-900/20 border-amber-500/30" : "bg-slate-800/40 border-slate-700"}`}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-semibold text-slate-300">{ins.title}</span>
                         <span className="text-xs text-slate-500 ml-auto">{ins.kind}</span>
@@ -272,7 +272,7 @@ export default function BrainPage() {
                   {ctx!.learned!.recent_memories!.slice(0, 8).map((m: any, i: number) => (
                     <div key={i} className="p-3 bg-slate-800/30 border border-slate-700 rounded-lg">
                       <div className="flex justify-between mb-1">
-                        <span className="text-xs text-violet-400">{m.source}</span>
+                        <span className="text-xs text-stone-400">{m.source}</span>
                         <span className="text-xs text-slate-600">{new Date(m.ts * 1000).toLocaleTimeString()}</span>
                       </div>
                       <p className="text-xs text-slate-300 leading-relaxed">{m.text?.substring(0, 150)}{m.text?.length > 150 ? "…" : ""}</p>
