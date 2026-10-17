@@ -78,10 +78,9 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     // Animation loop
     const animate = () => {
-      if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
+      // Performance Optimization: Stop requestAnimationFrame entirely when inactive
+      // to eliminate background CPU/GPU thread usage (reduces idle frame load to 0 FPS).
+      if (!isActive) return;
 
       // Clear canvas
       ctx.fillStyle = "rgba(15, 23, 42, 0.1)";
@@ -89,7 +88,22 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // Performance Optimization: Batch static line paths for all edges into a single path.
+      // Reduces edge line stroke calls from N (84) down to 1 per frame (>53% total draw call reduction).
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
+
+      // Update edge pulses
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -100,14 +114,6 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         const toNode = state.nodes[edge.to];
 
         if (!fromNode || !toNode) return;
-
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
 
         // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
@@ -124,7 +130,7 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.fill();
       });
 
-      // Update and draw nodes
+      // Update node pulses & draw node halos
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
@@ -139,25 +145,33 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.beginPath();
         ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        // Draw node core
-        ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node outline
-        ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
       });
+
+      // Performance Optimization: Batch node cores into a single fill path.
+      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 3, node.y);
+        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+      });
+      ctx.fill();
+
+      // Performance Optimization: Batch node outlines into a single stroke path.
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 4, node.y);
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+      });
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animationRef.current = requestAnimationFrame(animate);
+    if (isActive) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       if (animationRef.current !== null) {
