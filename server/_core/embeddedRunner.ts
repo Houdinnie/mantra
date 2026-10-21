@@ -188,7 +188,7 @@ export async function triggerEmbeddedFlow(
   // Execute steps async (non-blocking for cron triggers)
   (async () => {
     const context: Record<string, string> = { ...inputContext };
-    let currentStepId = flow.steps[0]?.id;
+    let currentStepId: string | undefined = flow.steps[0]?.id;
     let fullOutput = "";
 
     try {

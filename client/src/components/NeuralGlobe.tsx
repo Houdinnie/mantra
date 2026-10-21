@@ -2,7 +2,7 @@
  * Neon Nomad Empire - Enhanced Neural Network
  * 3D globe with glowing nodes for Mantra agents
  */
-import { useRef, useMemo, useState } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Sphere, Line, Html, Text } from "@react-three/drei";
 import * as THREE from "three";
@@ -74,7 +74,7 @@ function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolea
 }
 
 function ConnectionLines({ nodes, activeId }: { nodes: Node[]; activeId: string | null }) {
-  const lines: JSX.Element[] = [];
+  const lines: ReactElement[] = [];
   
   nodes.forEach((node) => {
     node.connections.forEach((connId) => {
@@ -140,9 +140,7 @@ function ParticleField() {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
+          args={[positions, 3]}
         />
       </bufferGeometry>
       <pointsMaterial size={0.015} color="#00f5ff" transparent opacity={0.6} />

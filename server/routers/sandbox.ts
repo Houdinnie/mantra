@@ -12,6 +12,7 @@ import {
   getUserSandboxes, updateSandboxStatus,
 } from "../db";
 import { getAllMemory } from "../db";
+import { sdk } from "../_core/sdk";
 import type { Express, Request, Response } from "express";
 
 // ─────────────────────────────────────────────────────────────
@@ -25,14 +26,18 @@ async function getOrCreateSandbox(
   sessionId: string,
   networkAccess = true
 ): Promise<SandboxInfo> {
-  // Check in-memory first
+  // Session IDs are client-supplied, so always verify ownership before
+  // consulting the process-wide sandbox registry.
+  const dbRecord = await getSandboxSession(sessionId);
+  if (dbRecord && dbRecord.userId !== userId) {
+    throw new Error("Forbidden: sandbox session belongs to another user");
+  }
+
   const existing = liveSandboxes.get(sessionId);
-  if (existing && await isSandboxAlive(existing)) {
+  if (existing && dbRecord && await isSandboxAlive(existing)) {
     return existing;
   }
 
-  // Check DB for a prior sandbox
-  const dbRecord = await getSandboxSession(sessionId);
   if (dbRecord) {
     const restored: SandboxInfo = {
       id: dbRecord.sandboxId,
@@ -46,12 +51,12 @@ async function getOrCreateSandbox(
       liveSandboxes.set(sessionId, restored);
       return restored;
     }
+  } else if (existing) {
+    // Never reuse an in-memory session if its ownership record is missing.
+    liveSandboxes.delete(sessionId);
   }
 
-  // Create fresh sandbox
   const sandbox = await createSandbox(sessionId, networkAccess);
-  liveSandboxes.set(sessionId, sandbox);
-
   await createSandboxSession({
     userId,
     sessionId,
@@ -60,8 +65,22 @@ async function getOrCreateSandbox(
     mode: sandbox.mode,
     workdir: sandbox.workdir,
   });
-
+  liveSandboxes.set(sessionId, sandbox);
   return sandbox;
+}
+
+async function authenticateSandboxRequest(req: Request, res: Response) {
+  try {
+    return await sdk.authenticateRequest(req);
+  } catch {
+    res.status(401).json({ error: "Authentication required" });
+    return null;
+  }
+}
+
+async function ownsSandboxSession(sessionId: string, userId: number): Promise<boolean> {
+  const record = await getSandboxSession(sessionId);
+  return Boolean(record && record.userId === userId);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -71,12 +90,25 @@ async function getOrCreateSandbox(
 export async function registerSandboxStream(app: Express) {
   // ── File upload into sandbox workspace ───────────────────────
   app.post("/api/sandbox/upload", async (req: Request, res: Response) => {
-    const sessionId = req.headers["x-session-id"] as string;
-    const userId    = parseInt(req.headers["x-user-id"] as string);
-    const filename  = decodeURIComponent(req.headers["x-filename"] as string ?? "upload");
+    const user = await authenticateSandboxRequest(req, res);
+    if (!user) return;
 
-    if (!sessionId || !userId || !filename) {
-      res.status(400).json({ error: "x-session-id, x-user-id, x-filename headers required" });
+    const sessionId = req.headers["x-session-id"] as string;
+    const rawFilename = req.headers["x-filename"];
+    let filename = "upload";
+    try {
+      if (typeof rawFilename === "string") filename = decodeURIComponent(rawFilename);
+    } catch {
+      res.status(400).json({ error: "Invalid filename encoding" });
+      return;
+    }
+
+    if (!sessionId || !filename) {
+      res.status(400).json({ error: "x-session-id and x-filename headers required" });
+      return;
+    }
+    if (!await ownsSandboxSession(sessionId, user.id)) {
+      res.status(403).json({ error: "Sandbox session not found or access denied" });
       return;
     }
 
@@ -117,11 +149,19 @@ export async function registerSandboxStream(app: Express) {
 
   // ── File download from sandbox workspace ─────────────────────
   app.get("/api/sandbox/download", async (req: Request, res: Response) => {
+    const user = await authenticateSandboxRequest(req, res);
+    if (!user) return;
+
     const sessionId = req.query.sessionId as string;
     const filePath  = req.query.path as string;
 
     if (!sessionId || !filePath) {
       res.status(400).json({ error: "sessionId and path required" });
+      return;
+    }
+
+    if (!await ownsSandboxSession(sessionId, user.id)) {
+      res.status(403).json({ error: "Sandbox session not found or access denied" });
       return;
     }
 
@@ -142,16 +182,23 @@ export async function registerSandboxStream(app: Express) {
 
   // ── Agent task SSE ────────────────────────────────────────────
   app.post("/api/sandbox/run", async (req: Request, res: Response) => {
-    const { task, sessionId, userId } = req.body as {
+    const user = await authenticateSandboxRequest(req, res);
+    if (!user) return;
+
+    const { task, sessionId } = req.body as {
       task: string;
       sessionId: string;
-      userId: number;
     };
 
-    if (!task || !sessionId || !userId) {
-      res.status(400).json({ error: "task, sessionId, userId required" });
+    if (typeof task !== "string" || !task.trim() || task.length > 20000 ||
+        typeof sessionId !== "string" || !sessionId.trim() || sessionId.length > 200) {
+      res.status(400).json({ error: "A valid task and sessionId are required" });
       return;
     }
+
+    // The user identity always comes from the signed session cookie, never
+    // from a caller-controlled request body.
+    const userId = user.id;
 
     // SSE headers
     res.setHeader("Content-Type", "text/event-stream");
@@ -243,6 +290,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (sandbox) {
         await killSandbox(sandbox);
@@ -257,6 +307,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (!sandbox) return { alive: false, sandboxId: null, mode: null };
       const alive = await isSandboxAlive(sandbox);
@@ -268,6 +321,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string(), path: z.string().default(".") }))
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (!sandbox) return [];
       return listFilesInSandbox(sandbox, input.path);
@@ -278,6 +334,9 @@ export const sandboxRouter = router({
     .input(z.object({ sessionId: z.string(), path: z.string() }))
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!await ownsSandboxSession(input.sessionId, ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sandbox session access denied" });
+      }
       const sandbox = liveSandboxes.get(input.sessionId);
       if (!sandbox) throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not found" });
       const content = await readFileInSandbox(sandbox, input.path);
