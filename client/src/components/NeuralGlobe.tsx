@@ -140,7 +140,7 @@ function ParticleField() {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          args={[new THREE.BufferAttribute(positions, 3)]}
+          args={[positions, 3]}
         />
       </bufferGeometry>
       <pointsMaterial size={0.015} color="#00f5ff" transparent opacity={0.6} />
