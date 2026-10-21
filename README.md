@@ -1,297 +1,140 @@
 # Mantra — AI Co-Founder Platform
 
 <p align="center">
-  <img src="https://github.com/Houdinnie/mantra" alt="Mantra AI Co-Founder Platform" width="400"/>
+  <strong>Turn ambitious ideas into plans, workflows, and software.</strong>
 </p>
 
 <p align="center">
-  <strong>From community to first-class cabin — validate, processize, optimize across borders, then scale sustainably.</strong>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Houdinnie/mantra/releases">
-    <img src="https://img.shields.io/badge/version-2.0.0-blue?style=flat-square" alt="Version 2.0">
+  <a href="https://github.com/Houdinnie/mantra/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/badge/CI-GitHub%20Actions-informational?style=flat-square" alt="GitHub Actions CI">
   </a>
   <a href="https://github.com/Houdinnie/mantra/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
-  </a>
-  <a href="https://discord.gg/mantra">
-    <img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square" alt="Discord">
+    <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
   </a>
 </p>
 
----
+Mantra is an AI co-founder platform intended to help people research opportunities, plan and build products, coordinate AI-assisted workflows, and carry useful context between sessions. The repository combines a React/TypeScript client with an Express/TypeScript server and integrations for AI providers, tools, persistence, and external services.
 
-## 🧠 What is Mantra?
+> **Project status:** Mantra is actively being developed. The catalog below describes the project's intended direction and implemented code areas; it is not a guarantee that every provider, integration, or agent is configured or production-ready. Check the current CI results and configure the required services before deployment.
 
-**Mantra is your AI Co-Founder** — a comprehensive platform combining:
+## What Mantra is for
 
-- **69 specialized AI agents** from Everything Claude Code
-- **10 Minimalist Entrepreneur principles** from slavingia/skills  
-- **27 tools** for code execution, web search, browser automation
-- **800+ app integrations** via Composio
-- **Claude-Mem persistent memory** for cross-session learning
-- **ClawRouter smart model routing** (92% cost savings)
-- **Franklin autonomous economic agents** with x402 micropayments
-- **8 personas** for business, tax, entity, compliance, lifestyle optimization
+- **Startup discovery:** explore communities, validate ideas, and turn repeatable work into processes.
+- **Software development:** plan changes, review code, investigate bugs, and support testing workflows.
+- **Research:** organize multi-step research and produce evidence-backed summaries when search integrations are configured.
+- **Workflow automation:** connect supported third-party services through configured integrations.
+- **Personal operating context:** use notes, files, and memory-related features where their storage and providers are configured.
+- **Specialist workflows:** structure work around business operations, engineering, marketing, sales, compliance, travel, and finance.
 
-Mantra turns vague goals into concrete plans, routes complex tasks to specialized agents, and maintains memory across sessions.
+Mantra is designed to help turn a broad goal into smaller tasks, route work to the right tools or agent roles, and keep the workflow understandable.
 
----
+## Quick start
 
-## 🎯 Use Cases
+### Requirements
 
-| What you want | How Mantra helps |
-|----------------|-------------------|
-| **Start a business** | Use `/find-community` → `/validate-idea` → `/processize` before building |
-| **Review code** | Route to Code Reviewer, Security Reviewer, or TDD Guide agents |
-| **Research markets** | Deep Research agent with web search + citations |
-| **Automate workflows** | 800+ Composio skills (GitHub, Slack, Notion, Salesforce) |
-| **Tax optimization** | NHR Portugal, UAE Freezone, Singapore strategies |
-| **Visa & travel** | Nomad Navigator for D7, digital nomad, golden visa guidance |
-| **Trading signals** | Trading Agent with autonomous wallet + x402 payments |
+- Node.js compatible with the project's CI runtime (Node 22)
+- pnpm (the repository declares its package manager in `package.json`)
+- Git
 
----
-
-## 🚀 Quick Start
-
-### Live Demo
-Visit **[houdinnie.zo.space](https://houdinnie.zo.space)** to try Mantra instantly.
-
-### Local Development
+### Install and run locally
 
 ```bash
-# Clone the repo
 git clone https://github.com/Houdinnie/mantra.git
 cd mantra
-
-# Install dependencies
 pnpm install
-
-# Start development server
 pnpm dev
 ```
 
-Open `http://localhost:5173` to access the Mantra AI chat interface.
+The development script starts the server entry point in watch mode. Open the local address printed by the development server; the client is served through the Vite development setup.
 
-### Build for Production
+### Useful commands
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Run the development server |
+| `pnpm check` | Run the TypeScript check |
+| `pnpm test` | Run the Vitest test suite |
+| `pnpm build` | Build the client and bundle the server |
+| `pnpm start` | Start the production server after a successful build |
+| `pnpm db:push` | Generate and apply Drizzle migrations; use only after configuring the intended database |
+
+### Production build
 
 ```bash
-# Build client
-cd client && pnpm build
-
-# Or build full stack
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test
 pnpm build
 pnpm start
 ```
 
----
+A successful build alone does not prove that the production deployment is ready. Configure the required environment variables and backing services for your deployment, then verify authentication, database access, model-provider credentials, external integrations, and sandbox isolation in that environment. Do not run database migrations against a production database until you have reviewed the generated migration and have a backup/recovery plan.
 
-## 📚 Skills (slavingia/skills)
+## Architecture at a glance
 
-Mantra integrates 10 skills from [slavingia/skills](https://github.com/slavingia/skills) — the Minimalist Entrepreneur methodology by Sahil Lavingia:
-
-| Skill | Impact | Description |
-|-------|--------|-------------|
-| `find-community` | 🔴 High | Identify communities to build a minimalist business around |
-| `validate-idea` | 🔴 High | Validate business ideas before building anything |
-| `processize` | 🔴 High | Turn product ideas into manual-first processes |
-| `minimalist-review` | 🟡 Medium | Review decisions through the minimalist entrepreneur lens |
-| `marketing` | 🟡 Medium | Community-driven marketing strategies |
-| `company-values` | 🟢 Low | Define and embed company values |
-| `pricing` | 🟢 Low | Pricing strategy for minimalist businesses |
-| `set-visitor-free` | 🟢 Low | Configure Gumroad-style free product giveaways |
-| `build受众` | 🟢 Low | Build your audience organically |
-| `get-ready-for-indiehackers` | 🟢 Low | Prepare for Indie Hackers launch |
-
-The **Skills Gate** automatically routes high-impact skills (community, validation, processizing) to deeper analysis, while lower-impact skills get streamlined responses.
-
----
-
-## 🤖 Agent Catalog (69 Total)
-
-### Everything Claude Code (48 agents)
-| Agent | Model | Purpose |
-|-------|-------|---------|
-| `planner` | opus | Implementation planning for complex features |
-| `code-reviewer` | sonnet | Code quality and maintainability review |
-| `security-reviewer` | sonnet | Vulnerability detection and remediation |
-| `tdd-guide` | sonnet | Test-driven development with 80%+ coverage |
-| `build-error-resolver` | sonnet | Fix build/type errors across languages |
-| `database-reviewer` | sonnet | PostgreSQL/Supabase schema and query optimization |
-| `python-reviewer` | sonnet | Python code review |
-| `typescript-reviewer` | sonnet | TypeScript/JavaScript code review |
-| `rust-reviewer` | sonnet | Rust code review |
-| `go-reviewer` | sonnet | Go code review |
-| `cpp-reviewer` | sonnet | C/C++ code review |
-| `java-reviewer` | sonnet | Java/Spring Boot code review |
-| `e2e-runner` | sonnet | Playwright end-to-end testing |
-| `docs-lookup` | haiku | Context7 documentation lookup |
-| + 35 more | | |
-
-### OpenJarvis (8 agents)
-| Agent | Description |
-|-------|-------------|
-| `morning_digest` | Daily briefing from email, calendar, health, news with TTS |
-| `deep_research` | Multi-hop research with citations across web + local docs |
-| `monitor_operative` | Long-horizon monitoring with memory and retrieval |
-| `orchestrator` | Multi-turn reasoning with automatic tool selection |
-| `native_react` | ReAct (Thought-Action-Observation) loop agent |
-| `operative` | Persistent autonomous agent with state management |
-| `native_openhands` | CodeAct — generates and executes Python code |
-| `simple` | Single-turn chat, no tools |
-
-### ClawCompany (6 roles)
-| Role | Model | Responsibility |
-|------|-------|----------------|
-| `ceo` | opus | Strategic decisions, mission orchestration |
-| `cfo` | sonnet | Financial analysis, resource allocation |
-| `cto` | sonnet | Technical architecture, implementation guidance |
-| `coo` | sonnet | Operations coordination, workflow optimization |
-| `cmo` | sonnet | Marketing strategy, campaign orchestration |
-| `cso` | sonnet | Sales strategy, client engagement |
-
-### Franklin (3 agents)
-| Agent | Description |
-|-------|-------------|
-| `marketing_agent` | Campaigns, content, social outreach with x402 payments |
-| `trading_agent` | Signals, research, risk analysis with autonomous wallet |
-| `content_agent` | Blog posts, social media, video scripts generation |
-
----
-
-## 🔧 Tools (27 Total)
-
-### Execution
-| Tool | Description |
-|------|-------------|
-| `web_search` | Search the web via SearxNG |
-| `browser_control` | Navigate, fill forms, extract data from websites |
-| `code_executor` | Run Python, JavaScript, Bash, Go, Java code |
-| `file_manager` | Read, write, organize files in workspace |
-
-### Personal Data (AutoMate)
-| Tool | Description |
-|------|-------------|
-| `notes` | Markdown notes with tags and search |
-| `files` | Content-addressed blob storage with deduplication |
-| `reminders` | Push notifications to phone |
-| `memory` | Cross-session key-value facts |
-| `search_find` | BM25 hybrid search across notes and files |
-
-### App Automation (Composio)
-| Tool | Description |
-|------|-------------|
-| `github_automation` | Repos, issues, PRs, branches, actions |
-| `slack_automation` | Messages, channels, threads |
-| `Notion_automation` | Pages, databases, comments |
-| `salesforce_automation` | Leads, opportunities, contacts |
-| `stripe_automation` | Charges, subscriptions, refunds |
-| `shopify_automation` | Products, orders, inventory |
-| `google_sheets` | Read/write cells, formulas, batch operations |
-| `postgres` | Safe read-only SQL queries |
-| `sendgrid` | Transactional emails and campaigns |
-
-### AI Infrastructure
-| Tool | Description |
-|------|-------------|
-| `memory_search` | Claude-Mem progressive disclosure search |
-| `timeline` | Chronological context around observations |
-| `role_delegation` | Delegate to CEO, CFO, CTO, COO, CMO, CSO |
-| `model_routing` | ClawRouter with 92% cost savings |
-| `x402_payments` | Micropayments for API calls via USDC |
-
----
-
-## 👤 8 Personas
-
-| Persona | Trigger Phrases | Specialty |
-|---------|-----------------|-----------|
-| **Ideator** | startup, business idea, validate, community | Find community → Validate → Processize |
-| **Tax Strategist** | tax, NHR, Portugal, UAE, Singapore | Tax optimization, residency programs |
-| **Entity Lawyer** | company, LLC, structure, legal | Entity formation, liability protection |
-| **Compliance Officer** | compliance, GDPR, audit | Regulatory requirements, data privacy |
-| **Nomad Navigator** | visa, D7, digital nomad, travel | Visa strategies, travel planning |
-| **Luxury Concierge** | luxury, premium, VIP | First-class experiences, exclusive access |
-| **Health & Wellness** | health, fitness, wellness, longevity | Health optimization, biohacking |
-| **Wealth Advisor** | investing, portfolio, crypto, stocks | Investment strategies, portfolio building |
-
----
-
-## 🏛️ 7 Pillars of Mantra
-
-Based on the Minimalist Entrepreneur philosophy:
-
-| # | Pillar | Description |
-|---|--------|-------------|
-| 1 | **Community First** | Start with people, not products. Find your community before your idea. |
-| 2 | **Validate Before Build** | Sell a manual version first. Don't code until people pay. |
-| 3 | **Processize Before Productize** | Do it by hand. Write the magic piece of paper. Then automate. |
-| 4 | **Ship in a Weekend** | Smallest version that makes someone's life better. |
-| 5 | **Profitability is the Goal** | Default alive > default dead. Revenue before vanity metrics. |
-| 6 | **Scale Mindfully** | Grow at the speed of your customers. |
-| 7 | **Build the House You Want to Live In** | Values over growth. Build for the long term. |
-
----
-
-## 🛠️ Project Structure
-
-```
+```text
 mantra/
-├── client/                    # React frontend (Vite, TypeScript, Tailwind)
-│   └── src/
-│       ├── components/
-│       │   ├── ui/           # shadcn/ui components
-│       │   ├── NeuralNetwork.tsx
-│       │   └── ToolsPanel.tsx
-│       ├── pages/
-│       │   ├── Landing.tsx   # Landing page
-│       │   ├── Chat.tsx      # Main chat interface
-│       │   └── Dashboard.tsx # User dashboard
-│       ├── contexts/         # Auth, theme contexts
-│       ├── lib/              # tRPC, utilities
-│       └── App.tsx           # Router setup
-├── server/                    # Express backend
-│   └── _core/
-│       ├── ventureMind.ts    # Minimalist Entrepreneur skills
-│       ├── tools.ts          # All integrated tools
-│       ├── aiCompany.ts      # ClawCompany framework
-│       └── sandbox.ts        # Cloud sandbox agent
-├── drizzle/                   # Database schema
-├── composio_skills/           # 800+ Composio integrations
-└── package.json
+├── client/             React, TypeScript, Vite UI
+├── server/             Express server and application logic
+│   ├── _core/          Runtime, agent, tool, and sandbox infrastructure
+│   └── routers/        tRPC application routers
+├── drizzle/            Database schema and migration assets
+├── composio_skills/    Integration-related assets
+├── .github/workflows/  CI workflow
+├── package.json        Scripts and dependencies
+└── pnpm-lock.yaml      Reproducible dependency lockfile
 ```
 
----
+The client provides the user interface; the server handles application routes and privileged operations. Exact capabilities depend on the modules enabled and the external services configured for a particular environment.
 
+## Agent roles and workflow concepts
 
+Mantra's code and design draw on several complementary patterns:
 
-## V2 Engineering Notes
+- **Planning and review:** break work into steps and use code-review, security-review, and test-oriented workflows.
+- **Company roles:** organize planning around responsibilities such as CEO, finance, engineering, operations, marketing, and sales.
+- **Research and operations:** support research, monitoring, content, and workflow coordination.
+- **Minimalist entrepreneurship:** start with a specific community and validated problem, processize the work, and automate only where it helps.
 
-Mantra v2 is being hardened around a few rules: documented capabilities must be distinguishable from verified integrations; execution tools must be treated as privileged; and deployment health must be observable without exposing secrets.
+These are workflow concepts and code areas, not a claim that every named agent or external service is enabled in every installation.
 
-### Runtime health
+## Security and operational notes
 
-The server exposes `GET /health` for process-level liveness. It does not claim that the database, model provider, or external integrations are healthy. Those need separate, dependency-aware checks before production use.
+- The Express server sets baseline security headers and exposes `GET /health` for **process-level liveness**. A successful health response does not establish that the database, model provider, or external integrations are healthy.
+- Treat code execution, sandbox access, file operations, payment flows, and third-party automation as privileged capabilities.
+- Authenticate requests and enforce ownership checks on user-scoped resources. Do not trust a user ID supplied only in a request body.
+- Keep credentials in environment variables or a secrets manager. Never commit API keys, session secrets, or production credentials.
+- Treat model output, uploaded files, and retrieved web content as untrusted input.
+- Review the current CI results and test authorization boundaries before exposing the service publicly.
 
-### Security baseline
+## Verification
 
-- Apply baseline browser security headers at the Express entry point.
-- Keep request-body limits explicit; file uploads should use their dedicated upload handlers.
-- Do not expose sandbox, code execution, payments, or external automation to unauthenticated users.
-- Keep secrets in environment variables or a secrets manager; never commit credentials.
-- Treat agent output and retrieved web content as untrusted input.
+The repository includes scripts for TypeScript checking, Vitest, and production builds. CI is intended to run the checks below:
 
-### Verification status
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
 
-The feature catalog below describes intended capabilities, not proof that every integration is configured or operational. Before production deployment, run `pnpm check`, `pnpm test`, and `pnpm build`, then validate authentication, authorization, sandbox isolation, and provider credentials in the target environment.
+A command being configured does not mean it has passed. Review the [GitHub Actions runs](https://github.com/Houdinnie/mantra/actions) for the latest result. Security regression coverage—especially unauthenticated access and cross-user sandbox isolation—should be confirmed before considering sandbox functionality production-ready.
 
-## 📖 License
+## Contributing
 
-MIT © 2026 Mantra. Built with precision, care, and the Minimalist Entrepreneur philosophy.
+1. Create a focused branch for your change.
+2. Install dependencies with `pnpm install`.
+3. Make the smallest clear change that solves the problem.
+4. Run `pnpm check`, `pnpm test`, and `pnpm build`.
+5. Include reproduction steps and test evidence in your pull request. Be explicit about checks that could not be run.
+
+Please do not include real secrets, customer data, or production credentials in issues, pull requests, fixtures, or logs.
+
+## License
+
+Mantra is licensed under the [MIT License](LICENSE).
 
 ---
 
 <p align="center">
-  <strong>Built to help you go from idea to first dollar — the right way.</strong>
+  <strong>Build with intention. Validate early. Automate responsibly.</strong>
 </p>
