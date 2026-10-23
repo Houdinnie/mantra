@@ -80,16 +80,25 @@ export const MathRenderer = memo(function MathRenderer({ children, className = "
   useEffect(() => {
     if (!containerRef.current || !children) return;
 
-    loadKatex().then(() => {
-      if (!containerRef.current) return;
-      const processed = processMathInHTML(containerRef.current.innerHTML);
-      if (processed !== containerRef.current.innerHTML) {
-        containerRef.current.innerHTML = processed;
-      }
-    });
+    // Optimization: Check for math delimiters or code blocks before loading KaTeX / mutating DOM.
+    // O(1) string check avoids triggering async module downloads and DOM parsing overhead for plain text messages.
+    const textContent = containerRef.current.textContent || (typeof children === "string" ? children : "");
+    const hasMath = /\$|\\\[|\\\(/.test(textContent);
+    const codeBlocks = containerRef.current.querySelectorAll("pre code");
+
+    if (!hasMath && codeBlocks.length === 0) return;
+
+    if (hasMath) {
+      loadKatex().then(() => {
+        if (!containerRef.current) return;
+        const processed = processMathInHTML(containerRef.current.innerHTML);
+        if (processed !== containerRef.current.innerHTML) {
+          containerRef.current.innerHTML = processed;
+        }
+      });
+    }
 
     // Add copy buttons to code blocks
-    const codeBlocks = containerRef.current.querySelectorAll("pre code");
     codeBlocks.forEach(block => {
       const pre = block.parentElement;
       if (!pre || pre.querySelector(".copy-btn")) return;
