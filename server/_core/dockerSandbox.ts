@@ -27,12 +27,12 @@ const execFileAsync = promisify(execFile);
 export type SandboxMode = "docker" | "process";
 
 export type SandboxInfo = {
-  id: string;           // Our internal ID
+  id: string; // Our internal ID
   containerId?: string; // Docker container ID (if docker mode)
   mode: SandboxMode;
   status: "running" | "stopped" | "error";
   createdAt: number;
-  workdir: string;      // Working directory inside sandbox
+  workdir: string; // Working directory inside sandbox
 };
 
 export type ExecResult = {
@@ -106,35 +106,63 @@ export async function createSandbox(
     // Docker mode — fully isolated container
     const network = networkAccess ? "bridge" : "none";
     const args = [
-      "run", "-d",
-      "--name", id,
-      "--network", network,
-      "--memory", "1g",
-      "--cpus", "1.5",
-      "--pids-limit", "128",
-      "--workdir", workdir,
+      "run",
+      "-d",
+      "--name",
+      id,
+      "--network",
+      network,
+      "--memory",
+      "1g",
+      "--cpus",
+      "1.5",
+      "--pids-limit",
+      "128",
+      "--workdir",
+      workdir,
       "--rm",
-      "--cap-drop", "ALL",
-      "--cap-add", "SYS_ADMIN",     // required for Chromium sandbox
-      "--security-opt", "seccomp=unconfined", // required for browser
-      "--security-opt", "no-new-privileges:false",
-      "--shm-size", "1g",            // Chromium needs shared memory
-      "-e", "DISPLAY=:99",
-      "-e", "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
+      "--cap-drop",
+      "ALL",
+      "--cap-add",
+      "SYS_ADMIN", // required for Chromium sandbox
+      "--security-opt",
+      "seccomp=unconfined", // required for browser
+      "--security-opt",
+      "no-new-privileges:false",
+      "--shm-size",
+      "1g", // Chromium needs shared memory
+      "-e",
+      "DISPLAY=:99",
+      "-e",
+      "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
       SANDBOX_IMAGE,
-      "/bin/bash", "-c",
+      "/bin/bash",
+      "-c",
       `mkdir -p ${workdir} && ${SANDBOX_INIT_COMMANDS} && tail -f /dev/null`,
     ];
 
     const { stdout } = await execFileAsync("docker", args, { timeout: 30000 });
     const containerId = stdout.trim();
 
-    return { id, containerId, mode: "docker", status: "running", createdAt: Date.now(), workdir };
+    return {
+      id,
+      containerId,
+      mode: "docker",
+      status: "running",
+      createdAt: Date.now(),
+      workdir,
+    };
   } else {
     // Process fallback — restricted temp directory
     const tmpDir = `/tmp/mantra-sandbox-${id}`;
     await execFileAsync("mkdir", ["-p", tmpDir]);
-    return { id, mode: "process", status: "running", createdAt: Date.now(), workdir: tmpDir };
+    return {
+      id,
+      mode: "process",
+      status: "running",
+      createdAt: Date.now(),
+      workdir: tmpDir,
+    };
   }
 }
 
@@ -160,16 +188,19 @@ async function execInDocker(
   command: string,
   workdir: string
 ): Promise<ExecResult> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     let stdout = "";
     let stderr = "";
     let timedOut = false;
 
     const proc = spawn("docker", [
       "exec",
-      "--workdir", workdir,
+      "--workdir",
+      workdir,
       containerId,
-      "/bin/bash", "-c", command,
+      "/bin/bash",
+      "-c",
+      command,
     ]);
 
     const timer = setTimeout(() => {
@@ -177,57 +208,104 @@ async function execInDocker(
       proc.kill("SIGTERM");
     }, EXEC_TIMEOUT_MS);
 
-    proc.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
-    proc.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+    proc.stdout.on("data", (d: Buffer) => {
+      stdout += d.toString();
+    });
+    proc.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString();
+    });
 
-    proc.on("close", (code) => {
+    proc.on("close", code => {
       clearTimeout(timer);
       resolve({
-        stdout: stdout.slice(0, 50_000),    // cap at 50KB
+        stdout: stdout.slice(0, 50_000), // cap at 50KB
         stderr: stderr.slice(0, 10_000),
         exitCode: code ?? 1,
         timedOut,
       });
     });
 
-    proc.on("error", (err) => {
+    proc.on("error", err => {
       clearTimeout(timer);
-      resolve({ stdout: "", stderr: err.message, exitCode: 1, timedOut: false });
+      resolve({
+        stdout: "",
+        stderr: err.message,
+        exitCode: 1,
+        timedOut: false,
+      });
     });
   });
 }
 
-async function execInProcess(workdir: string, command: string): Promise<ExecResult> {
+async function execInProcess(
+  workdir: string,
+  command: string
+): Promise<ExecResult> {
   // Restricted: block dangerous commands
-  const BLOCKED = ["rm -rf /", "dd if=", ":(){ :|:& };:", "mkfs", "fdisk", "parted", "chmod 777 /", "> /dev/"];
+  const BLOCKED = [
+    "rm -rf /",
+    "dd if=",
+    ":(){ :|:& };:",
+    "mkfs",
+    "fdisk",
+    "parted",
+    "chmod 777 /",
+    "> /dev/",
+  ];
   if (BLOCKED.some(b => command.includes(b))) {
-    return { stdout: "", stderr: "Command blocked by sandbox policy", exitCode: 1, timedOut: false };
+    return {
+      stdout: "",
+      stderr: "Command blocked by sandbox policy",
+      exitCode: 1,
+      timedOut: false,
+    };
   }
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     let stdout = "";
     let stderr = "";
     let timedOut = false;
 
     const proc = spawn("/bin/bash", ["-c", command], {
       cwd: workdir,
-      env: { PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", HOME: workdir, TMPDIR: workdir },
+      env: {
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        HOME: workdir,
+        TMPDIR: workdir,
+      },
       timeout: EXEC_TIMEOUT_MS,
     });
 
-    const timer = setTimeout(() => { timedOut = true; proc.kill(); }, EXEC_TIMEOUT_MS);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      proc.kill();
+    }, EXEC_TIMEOUT_MS);
 
-    proc.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
-    proc.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
-
-    proc.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({ stdout: stdout.slice(0, 50_000), stderr: stderr.slice(0, 10_000), exitCode: code ?? 1, timedOut });
+    proc.stdout.on("data", (d: Buffer) => {
+      stdout += d.toString();
+    });
+    proc.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString();
     });
 
-    proc.on("error", (err) => {
+    proc.on("close", code => {
       clearTimeout(timer);
-      resolve({ stdout: "", stderr: err.message, exitCode: 1, timedOut: false });
+      resolve({
+        stdout: stdout.slice(0, 50_000),
+        stderr: stderr.slice(0, 10_000),
+        exitCode: code ?? 1,
+        timedOut,
+      });
+    });
+
+    proc.on("error", err => {
+      clearTimeout(timer);
+      resolve({
+        stdout: "",
+        stderr: err.message,
+        exitCode: 1,
+        timedOut: false,
+      });
     });
   });
 }
@@ -247,7 +325,11 @@ export async function writeFileInSandbox(
   const dir = fullPath.split("/").slice(0, -1).join("/");
 
   if (sandbox.mode === "docker" && sandbox.containerId) {
-    await execInDocker(sandbox.containerId, `mkdir -p "${dir}" && cat > "${fullPath}" << 'MANTRA_EOF'\n${content}\nMANTRA_EOF`, sandbox.workdir);
+    await execInDocker(
+      sandbox.containerId,
+      `mkdir -p "${dir}" && cat > "${fullPath}" << 'MANTRA_EOF'\n${content}\nMANTRA_EOF`,
+      sandbox.workdir
+    );
   } else {
     const { execFile: ef } = await import("child_process");
     const efAsync = promisify(ef);
@@ -262,7 +344,10 @@ export async function readFileInSandbox(
   relativePath: string
 ): Promise<string> {
   const fullPath = `${sandbox.workdir}/${relativePath.replace(/^\//, "")}`;
-  const result = await execInSandbox(sandbox, `cat "${fullPath}" 2>/dev/null || echo "[FILE_NOT_FOUND]"`);
+  const result = await execInSandbox(
+    sandbox,
+    `cat "${fullPath}" 2>/dev/null || echo "[FILE_NOT_FOUND]"`
+  );
   return result.stdout;
 }
 
@@ -276,7 +361,8 @@ export async function listFilesInSandbox(
     `find "${fullPath}" -maxdepth 2 -printf '%y %s %P\n' 2>/dev/null | head -100`
   );
 
-  return result.stdout.split("\n")
+  return result.stdout
+    .split("\n")
     .filter(Boolean)
     .map(line => {
       const [type, size, ...pathParts] = line.split(" ");
@@ -315,7 +401,9 @@ print(text[:8000])
   );
 
   const statusCode = result.stdout.includes("__STATUS_ERROR__") ? 0 : 200;
-  const content = result.stdout.replace(/__STATUS_\d+__|__STATUS_ERROR__/g, "").trim();
+  const content = result.stdout
+    .replace(/__STATUS_\d+__|__STATUS_ERROR__/g, "")
+    .trim();
   return { content, statusCode };
 }
 
@@ -326,7 +414,9 @@ print(text[:8000])
 export async function killSandbox(sandbox: SandboxInfo): Promise<void> {
   if (sandbox.mode === "docker" && sandbox.containerId) {
     try {
-      await execFileAsync("docker", ["kill", sandbox.containerId], { timeout: 5000 });
+      await execFileAsync("docker", ["kill", sandbox.containerId], {
+        timeout: 5000,
+      });
     } catch {
       // May already be dead
     }
@@ -345,9 +435,11 @@ export async function killSandbox(sandbox: SandboxInfo): Promise<void> {
 export async function isSandboxAlive(sandbox: SandboxInfo): Promise<boolean> {
   if (sandbox.mode === "docker" && sandbox.containerId) {
     try {
-      const { stdout } = await execFileAsync("docker", [
-        "inspect", "--format", "{{.State.Running}}", sandbox.containerId,
-      ], { timeout: 3000 });
+      const { stdout } = await execFileAsync(
+        "docker",
+        ["inspect", "--format", "{{.State.Running}}", sandbox.containerId],
+        { timeout: 3000 }
+      );
       return stdout.trim() === "true";
     } catch {
       return false;

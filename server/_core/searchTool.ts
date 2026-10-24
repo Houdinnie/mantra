@@ -30,7 +30,9 @@ export type SearchToolResult = {
  * Call Claude with web search tool enabled.
  * Claude decides when to search; results are woven into the response.
  */
-export async function callClaudeWithSearch(params: SearchToolParams): Promise<SearchToolResult> {
+export async function callClaudeWithSearch(
+  params: SearchToolParams
+): Promise<SearchToolResult> {
   if (!ENV.anthropicApiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
   const response = await fetch(API_URL, {
@@ -66,7 +68,12 @@ export async function callClaudeWithSearch(params: SearchToolParams): Promise<Se
       text?: string;
       name?: string;
       input?: { query?: string };
-      content?: Array<{ type: string; url?: string; title?: string; encrypted_content?: string }>;
+      content?: Array<{
+        type: string;
+        url?: string;
+        title?: string;
+        encrypted_content?: string;
+      }>;
     }>;
   };
 
@@ -79,7 +86,11 @@ export async function callClaudeWithSearch(params: SearchToolParams): Promise<Se
     if (block.type === "text" && block.text) {
       reply += block.text;
     }
-    if (block.type === "tool_use" && block.name === "web_search" && block.input?.query) {
+    if (
+      block.type === "tool_use" &&
+      block.name === "web_search" &&
+      block.input?.query
+    ) {
       searchedFor.push(block.input.query);
     }
     if (block.type === "tool_result" && Array.isArray(block.content)) {
@@ -159,27 +170,53 @@ export async function* streamClaudeWithSearch(
     for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
       const raw = line.slice(6).trim();
-      if (raw === "[DONE]") { yield { type: "done" }; return; }
+      if (raw === "[DONE]") {
+        yield { type: "done" };
+        return;
+      }
 
       try {
         const event = JSON.parse(raw) as {
           type: string;
           delta?: { type: string; text?: string };
-          content_block?: { type: string; name?: string; input?: { query?: string }; content?: Array<{ url?: string; title?: string }> };
+          content_block?: {
+            type: string;
+            name?: string;
+            input?: { query?: string };
+            content?: Array<{ url?: string; title?: string }>;
+          };
         };
 
-        if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && event.delta.text) {
+        if (
+          event.type === "content_block_delta" &&
+          event.delta?.type === "text_delta" &&
+          event.delta.text
+        ) {
           yield { type: "delta", text: event.delta.text };
         }
-        if (event.type === "content_block_start" && event.content_block?.type === "tool_use") {
+        if (
+          event.type === "content_block_start" &&
+          event.content_block?.type === "tool_use"
+        ) {
           if (event.content_block.input?.query) {
-            yield { type: "search_query", query: event.content_block.input.query };
+            yield {
+              type: "search_query",
+              query: event.content_block.input.query,
+            };
           }
         }
-        if (event.type === "content_block_start" && event.content_block?.type === "tool_result") {
+        if (
+          event.type === "content_block_start" &&
+          event.content_block?.type === "tool_result"
+        ) {
           const items = event.content_block.content ?? [];
           for (const item of items) {
-            if (item.url) yield { type: "source", url: item.url, title: item.title ?? item.url };
+            if (item.url)
+              yield {
+                type: "source",
+                url: item.url,
+                title: item.title ?? item.url,
+              };
           }
         }
       } catch {

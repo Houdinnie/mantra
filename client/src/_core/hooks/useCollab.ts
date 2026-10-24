@@ -48,9 +48,14 @@ export function useCollab({
   const wsRef = useRef<WebSocket | null>(null);
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const sendTyping = useCallback((isTyping: boolean) => {
-    wsRef.current?.send(JSON.stringify({ type: "typing", sessionId, userId, isTyping }));
-  }, [sessionId, userId]);
+  const sendTyping = useCallback(
+    (isTyping: boolean) => {
+      wsRef.current?.send(
+        JSON.stringify({ type: "typing", sessionId, userId, isTyping })
+      );
+    },
+    [sessionId, userId]
+  );
 
   useEffect(() => {
     if (!sessionId || !userId) return;
@@ -64,11 +69,12 @@ export function useCollab({
       ws.send(JSON.stringify({ type: "join", sessionId, userId, userName }));
       // Keepalive ping every 25s
       pingRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
+        if (ws.readyState === WebSocket.OPEN)
+          ws.send(JSON.stringify({ type: "ping" }));
       }, 25_000);
     };
 
-    ws.onmessage = (evt) => {
+    ws.onmessage = evt => {
       try {
         const msg = JSON.parse(evt.data) as Record<string, unknown>;
         switch (msg.type) {
@@ -80,11 +86,13 @@ export function useCollab({
             // presence broadcast follows immediately
             break;
           case "typing":
-            setUsers(prev => prev.map(u =>
-              u.userId === (msg.userId as number)
-                ? { ...u, isTyping: msg.isTyping as boolean }
-                : u
-            ));
+            setUsers(prev =>
+              prev.map(u =>
+                u.userId === (msg.userId as number)
+                  ? { ...u, isTyping: msg.isTyping as boolean }
+                  : u
+              )
+            );
             break;
           case "message":
             onMessage?.(msg as unknown as CollabMessage);
@@ -119,7 +127,7 @@ export function useCollab({
   }, [sessionId, userId, userName]);
 
   const typingUsers = users.filter(u => u.userId !== userId && u.isTyping);
-  const otherUsers  = users.filter(u => u.userId !== userId);
+  const otherUsers = users.filter(u => u.userId !== userId);
 
   return { users, otherUsers, typingUsers, connected, sendTyping };
 }
