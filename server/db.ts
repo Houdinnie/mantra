@@ -5,6 +5,10 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+export function setDb(db: any) {
+  _db = db;
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try { _db = drizzle(process.env.DATABASE_URL); }
@@ -101,11 +105,24 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+  // Optimize by using SQL aggregate functions instead of in-memory processing
+  const [result] = await db.select({
+    totalSessions: sql`count(*)`,
+    totalMessages: sql`sum(${chatSessions.messageCount})`,
+    lastActive: sql`max(${chatSessions.updatedAt})`
+  })
+  .from(chatSessions)
+  .where(eq(chatSessions.userId, userId));
+
+  if (!result || Number(result.totalSessions) === 0) {
+    return { totalSessions: 0, totalMessages: 0, lastActive: null };
+  }
+
+  return {
+    totalSessions: Number(result.totalSessions),
+    totalMessages: Number(result.totalMessages || 0),
+    lastActive: result.lastActive ? new Date(result.lastActive as string) : null
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
