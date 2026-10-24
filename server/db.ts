@@ -1,9 +1,13 @@
-import { eq, desc, asc, sql, like, and } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and, count, sum, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, chatSessions, chatMessages, userMemory, userNotes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -98,14 +102,27 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
   return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
 }
 
+// Optimization: Use SQL aggregate functions (count, sum, max) instead of fetching all rows into memory and sorting in Node.js.
+// Reduces memory allocation and converts O(N) JS aggregation/sorting to O(1) SQL database query.
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+  const [stats] = await db
+    .select({
+      totalSessions: count(chatSessions.id),
+      totalMessages: sum(chatSessions.messageCount),
+      lastActive: max(chatSessions.updatedAt),
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  if (!stats) return { totalSessions: 0, totalMessages: 0, lastActive: null };
+
+  return {
+    totalSessions: Number(stats.totalSessions ?? 0),
+    totalMessages: Number(stats.totalMessages ?? 0),
+    lastActive: stats.lastActive ? new Date(stats.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
