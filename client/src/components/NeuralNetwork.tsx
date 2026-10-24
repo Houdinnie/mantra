@@ -14,6 +14,10 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
   });
 
   useEffect(() => {
+    // BOLT OPTIMIZATION: Return early if component is inactive to completely stop
+    // requestAnimationFrame CPU/GPU consumption when offscreen or hidden.
+    if (!isActive) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -78,18 +82,17 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     // Animation loop
     const animate = () => {
-      if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
       // Clear canvas
       ctx.fillStyle = "rgba(15, 23, 42, 0.1)";
       ctx.fillRect(0, 0, width, height);
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // BOLT OPTIMIZATION: Batch edge line rendering into a single path call.
+      // Reduces canvas context stroke calls from O(E) to O(1), minimizing WebGL/2D state changes.
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -99,17 +102,19 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         const fromNode = state.nodes[edge.from];
         const toNode = state.nodes[edge.to];
 
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
+
+      // Render pulse animations along edges
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
         if (!fromNode || !toNode) return;
 
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
-
-        // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
         const pulseY = fromNode.y + (toNode.y - fromNode.y) * edge.progress;
 
@@ -124,7 +129,7 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.fill();
       });
 
-      // Update and draw nodes
+      // Update node animation state & draw halos
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
@@ -139,20 +144,26 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.beginPath();
         ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        // Draw node core
-        ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node outline
-        ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
       });
+
+      // BOLT OPTIMIZATION: Batch node cores into a single fill call
+      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 3, node.y);
+        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+      });
+      ctx.fill();
+
+      // BOLT OPTIMIZATION: Batch node outlines into a single stroke call
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 4, node.y);
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+      });
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -164,7 +175,7 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isActive]);
+  }, [isActive, compact]);
 
   return (
     <canvas
