@@ -214,7 +214,6 @@ Generate the briefing. If brain insights were provided, surface the most importa
 import {
   readBrainState,
   getBrainInsights,
-  getBrainLearned,
   recallMemories,
   saveBrain,
   getFullBrainContext,
