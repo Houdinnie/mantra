@@ -89,7 +89,12 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // Performance Optimization: Batch static edge line drawing into a single path
+      // to reduce Canvas draw calls from O(E) to O(1) stroke operations per frame.
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -101,15 +106,18 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
         if (!fromNode || !toNode) return;
 
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
         ctx.moveTo(fromNode.x, fromNode.y);
         ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
+      });
+      ctx.stroke();
 
-        // Draw pulse along edge
+      // Draw pulse along each edge (requires individual radial gradients)
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+
+        if (!fromNode || !toNode) return;
+
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
         const pulseY = fromNode.y + (toNode.y - fromNode.y) * edge.progress;
 
@@ -124,12 +132,12 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.fill();
       });
 
-      // Update and draw nodes
+      // Update node animation state and draw node halos
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
 
-        // Draw halo
+        // Draw halo (variable gradient radius per node)
         const haloRadius = 6 + node.halo * 4;
         const haloGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloRadius);
         haloGradient.addColorStop(0, `rgba(34, 197, 94, ${0.3 * node.halo})`);
@@ -139,20 +147,28 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.beginPath();
         ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        // Draw node core
-        ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node outline
-        ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
       });
+
+      // Performance Optimization: Batch node cores into a single fill path
+      // reduces node core draw calls from O(N) to O(1) per frame.
+      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 3, node.y);
+        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+      });
+      ctx.fill();
+
+      // Performance Optimization: Batch node outlines into a single stroke path
+      // reduces node outline draw calls from O(N) to O(1) per frame.
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 4, node.y);
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+      });
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(animate);
     };
