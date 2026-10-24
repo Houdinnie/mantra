@@ -19,7 +19,7 @@ const FlowStepSchema = z.object({
   content: z.string().optional(),
   tool: z.string().optional(),
   command: z.string().optional(),
-  toolArgs: z.record(z.unknown()).optional(),
+  toolArgs: z.record(z.string(), z.unknown()).optional(),
   condition: z.string().optional(),
   waitMs: z.number().optional(),
   onSuccess: z.string().optional(),
@@ -65,7 +65,7 @@ export const taskRouter = router({
     }),
 
   invokeTool: protectedProcedure
-    .input(z.object({ tool: z.string().min(1), args: z.record(z.unknown()).default({}) }))
+    .input(z.object({ tool: z.string().min(1), args: z.record(z.string(), z.unknown()).default({}) }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       const online = await isGatewayOnline();
@@ -112,7 +112,7 @@ export const taskRouter = router({
     }),
 
   triggerFlow: protectedProcedure
-    .input(z.object({ id: z.string(), input: z.record(z.unknown()).optional() }))
+    .input(z.object({ id: z.string(), input: z.record(z.string(), z.unknown()).optional() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       const online = await isGatewayOnline();
@@ -151,7 +151,7 @@ export const taskRouter = router({
     }),
 
   createFromTemplate: protectedProcedure
-    .input(z.object({ template: z.enum(["morningBriefing","urlMonitor","researchTask","tradingAlert"]), params: z.record(z.unknown()) }))
+    .input(z.object({ template: z.enum(["morningBriefing","urlMonitor","researchTask","tradingAlert"]), params: z.record(z.string(), z.unknown()) }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       const p = input.params as Record<string, any>;

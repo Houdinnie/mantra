@@ -243,6 +243,8 @@ export default function Chat() {
               skill?: string | null;
               tier?: string | null;
               message?: string;
+              task?: string;
+              url?: string;
             };
 
             if (event.type === "routing") {

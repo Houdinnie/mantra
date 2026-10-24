@@ -60,19 +60,30 @@ Visit **[houdinnie.zo.space](https://houdinnie.zo.space)** to try Mantra instant
 
 ### Local Development
 
+Requires Node 22+ and pnpm 10.
+
 ```bash
-# Clone the repo
 git clone https://github.com/Houdinnie/mantra.git
 cd mantra
-
-# Install dependencies
 pnpm install
-
-# Start development server
+cp .env.example .env     # then edit it, see below
 pnpm dev
 ```
 
-Open `http://localhost:5173` to access the Mantra AI chat interface.
+The server and client run together on `http://localhost:3000` (set `PORT` to change it).
+
+Only `JWT_SECRET` is needed to see the landing page. Everything else is optional and switches on a feature:
+
+| Variable | What it enables |
+|---|---|
+| `DATABASE_URL` | MySQL storage for sessions, notes, tasks and memory. Run `pnpm db:push` once after setting it. |
+| `OAUTH_SERVER_URL`, `VITE_APP_ID`, `OWNER_OPEN_ID` | Manus OAuth sign-in |
+| `ANTHROPIC_API_KEY` | Claude-backed chat and agents (paid API) |
+| `BUILT_IN_FORGE_API_URL`, `BUILT_IN_FORGE_API_KEY` | Manus-hosted AI, storage and notifications |
+| `OPENCLAW_URL`, `OPENCLAW_TOKEN` | External OpenClaw task gateway (falls back to the built-in runner) |
+| `NEUROLINKED_URL` | External NeuroLinked brain (falls back to the embedded one) |
+
+Other checks: `pnpm check` (types), `pnpm test` (the session test needs `DATABASE_URL`).
 
 ### Build for Production
 
