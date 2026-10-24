@@ -1,0 +1,3 @@
+## 2025-05-18 - Single-query SQL aggregations for user chat metrics
+**Learning:** In `server/db.ts`, fetching all chat session rows to compute total sessions, message sums, and last active timestamp in Node.js memory creates O(N) network payload and O(N log N) sorting overhead. Using Drizzle ORM aggregate helpers (`count()`, `sum()`, `max()`) executes the aggregation directly in the database engine, reducing memory overhead to O(1).
+**Action:** Always prefer native SQL aggregate functions (`count()`, `sum()`, `max()`) over fetching full record lists into Node.js memory for summary/stats calculations.
