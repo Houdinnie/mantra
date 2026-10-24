@@ -1,0 +1,3 @@
+## 2026-03-01 - [Avoid In-Memory Aggregations of Database Records]
+**Learning:** Selecting all rows of a user's collection (like `chatSessions`) into memory to compute metrics like count, total message sum, or last active date creates an O(N) memory and compute bottleneck. As data grows, this wastes database egress bandwidth, increases memory pressure on Node, and causes slow TRPC queries.
+**Action:** Always favor database-level SQL aggregate functions (`count`, `sum`, `max`) from `drizzle-orm` to perform aggregation directly inside the database engine. This reduces network payload, uses database indices, and converts the operation from O(N) to O(1) complexity.
