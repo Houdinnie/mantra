@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
+import { setDb } from "../db";
 import type { TrpcContext } from "../_core/context";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
@@ -34,6 +35,26 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+
+    // Mock database instance with a chainable query builder structure
+    const mockDb = {
+      insert: vi.fn(() => ({
+        values: vi.fn().mockResolvedValue({}),
+      })),
+      select: vi.fn(() => ({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      })),
+    } as any;
+
+    setDb(mockDb);
+  });
+
+  afterEach(() => {
+    // Reset database instance state to prevent leakage between test runs
+    setDb(null);
   });
 
   it("should create a new session", async () => {
