@@ -1,4 +1,4 @@
-import { eq, desc, asc, sql, like, and } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and, count, sum, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, chatSessions, chatMessages, userMemory, userNotes } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -11,6 +11,10 @@ export async function getDb() {
     catch (error) { console.warn("[Database] Failed to connect:", error); _db = null; }
   }
   return _db;
+}
+
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -101,11 +105,28 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+
+  // Performance Optimization: Use SQL aggregate functions (count, sum, max) from drizzle-orm
+  // to avoid fetching all rows and aggregating in memory, providing an O(N) to O(1) performance win.
+  const result = await db
+    .select({
+      totalSessions: count(chatSessions.id),
+      totalMessages: sum(chatSessions.messageCount),
+      lastActive: max(chatSessions.updatedAt),
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  if (!result || result.length === 0) {
+    return { totalSessions: 0, totalMessages: 0, lastActive: null };
+  }
+
+  const row = result[0];
+  return {
+    totalSessions: Number(row.totalSessions || 0),
+    totalMessages: Number(row.totalMessages || 0),
+    lastActive: row.lastActive ? new Date(row.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
