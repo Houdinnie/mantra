@@ -1,0 +1,3 @@
+## 2025-06-30 - [Database] SQL Aggregation over In-Memory Processing
+**Learning:** Fetching all rows from a table (e.g., `chat_sessions`) to calculate aggregates like `count`, `sum`, or `max` in application memory is an anti-pattern that leads to O(N) data transfer and memory usage. Using Drizzle's built-in SQL aggregate functions allows the database to perform these calculations, reducing the overhead to O(1) for the application server.
+**Action:** Always prefer `count()`, `sum()`, and `max()` from `drizzle-orm` for calculating metrics instead of fetching arrays and using `.reduce()` or `.length`.
