@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
+import { setDb } from "../db";
 import type { TrpcContext } from "../_core/context";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
@@ -29,11 +30,34 @@ function createAuthContext(): TrpcContext {
   return ctx;
 }
 
+function createMockDb(resolvedValue: any = []) {
+  const queryBuilder = {
+    values: vi.fn().mockResolvedValue(resolvedValue),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(resolvedValue),
+    then: (onFulfilled: any) => Promise.resolve(resolvedValue).then(onFulfilled),
+  };
+
+  return {
+    insert: vi.fn().mockReturnValue(queryBuilder),
+    select: vi.fn().mockReturnValue(queryBuilder),
+    update: vi.fn().mockReturnValue(queryBuilder),
+    delete: vi.fn().mockReturnValue(queryBuilder),
+  } as any;
+}
+
 describe("chat router", () => {
   let ctx: TrpcContext;
 
   beforeEach(() => {
     ctx = createAuthContext();
+    setDb(createMockDb([]));
+  });
+
+  afterEach(() => {
+    setDb(null);
   });
 
   it("should create a new session", async () => {
@@ -82,5 +106,25 @@ describe("chat router", () => {
     const result = await caller.getSessions({ limit: 50 });
 
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should get user stats", async () => {
+    const mockDb = createMockDb([
+      {
+        totalSessions: "5",
+        totalMessages: "42",
+        lastActive: "2026-03-30T12:00:00.000Z",
+      },
+    ]);
+    setDb(mockDb);
+
+    const caller = chatRouter.createCaller(ctx);
+    const result = await caller.getStats();
+
+    expect(result).toEqual({
+      totalSessions: 5,
+      totalMessages: 42,
+      lastActive: new Date("2026-03-30T12:00:00.000Z"),
+    });
   });
 });
