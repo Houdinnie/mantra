@@ -1,0 +1,3 @@
+## 2025-05-15 - Optimizing aggregation with SQL aggregates
+**Learning:** Fetching all rows from a table to perform aggregation in memory (summing, counting, or finding max/min) is a significant performance bottleneck that grows linearly with data size. Drizzle ORM's aggregate functions (`count`, `sum`, `max`) allow offloading this to the database, reducing O(N) data transfer to O(1).
+**Action:** Always prefer SQL aggregate functions over in-memory array manipulation for metrics and statistics. Remember that some drivers/databases may return these as strings, so numeric conversion is necessary for consistency with TypeScript interfaces.
