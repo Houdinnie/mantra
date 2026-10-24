@@ -1,0 +1,3 @@
+## 2026-03-29 - [Drizzle ORM Aggregations and Unit Test Mocking]
+**Learning:** Performing in-memory calculations (reduce, sort) over potentially large datasets fetched from SQL queries creates substantial memory and compute bottlenecks. These should always be replaced by database-side SQL aggregations like count, sum, and max. In tests, mocking these chainable Drizzle queries requires a non-thenable database mock object returning thenable builder instances to prevent premature resolution by async helpers like `getDb()`.
+**Action:** Use `import { count, sum, max } from "drizzle-orm"` for aggregations, ensure all DB driver results are coerced safely using `Number()` or `new Date()`, and mock using a custom non-thenable mock database query builder.
