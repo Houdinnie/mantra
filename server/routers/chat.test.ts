@@ -1,17 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
-
-type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+import * as db from "../db";
 
 function createAuthContext(): TrpcContext {
-  const user: AuthenticatedUser = {
+  const user = {
     id: 1,
     openId: "test-user",
     email: "test@example.com",
     name: "Test User",
     loginMethod: "manus",
-    role: "user",
+    role: "user" as const,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
@@ -34,15 +33,18 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+    vi.clearAllMocks();
   });
 
   it("should create a new session", async () => {
+    const spy = vi.spyOn(db, "createChatSession").mockResolvedValue({} as any);
     const caller = chatRouter.createCaller(ctx);
     const result = await caller.createSession();
 
     expect(result.success).toBe(true);
     expect(result.sessionId).toBeDefined();
     expect(result.sessionId).toMatch(/^s_/);
+    expect(spy).toHaveBeenCalledWith(ctx.user!.id, result.sessionId);
   });
 
   it("should reject unauthorized requests", async () => {
@@ -77,10 +79,12 @@ describe("chat router", () => {
   });
 
   it("should get sessions for authenticated user", async () => {
+    const spy = vi.spyOn(db, "getUserSessions").mockResolvedValue([]);
     const caller = chatRouter.createCaller(ctx);
 
     const result = await caller.getSessions({ limit: 50 });
 
     expect(Array.isArray(result)).toBe(true);
+    expect(spy).toHaveBeenCalledWith(ctx.user!.id, 50);
   });
 });
