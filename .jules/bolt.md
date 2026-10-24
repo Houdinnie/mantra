@@ -1,0 +1,3 @@
+## 2026-05-02 - SQL-Level Aggregate Functions in Drizzle ORM
+**Learning:** Querying database models and then aggregating in-memory inside application logic (e.g. using array `reduce` or in-place sorting) degrades rapidly in performance to $O(N)$ as user interaction history accumulates. Moving metrics computation to database-native aggregation functions like `count()`, `sum()`, and `max()` scales as $O(1)$ in memory and data transfer.
+**Action:** When calculating stats or summary information, prioritize native SQL aggregates directly in Drizzle queries over fetching multiple rows to aggregate in application logic.
