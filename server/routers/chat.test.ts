@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -31,9 +32,50 @@ function createAuthContext(): TrpcContext {
 
 describe("chat router", () => {
   let ctx: TrpcContext;
+  let originalDatabaseUrl: string | undefined;
 
   beforeEach(() => {
     ctx = createAuthContext();
+    originalDatabaseUrl = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = "";
+
+    // Mock query builder chain for database
+    const mockValuesResult = {
+      then: (onFulfilled: any) => Promise.resolve({}).then(onFulfilled),
+    };
+    const mockValues = vi.fn().mockReturnValue(mockValuesResult);
+    const mockInsert = vi.fn().mockReturnValue({
+      values: mockValues,
+    });
+
+    const mockLimitResult = {
+      then: (onFulfilled: any) => Promise.resolve([]).then(onFulfilled),
+    };
+    const mockLimit = vi.fn().mockReturnValue(mockLimitResult);
+    const mockOrderBy = vi.fn().mockReturnValue({
+      limit: mockLimit,
+    });
+    const mockWhere = vi.fn().mockReturnValue({
+      orderBy: mockOrderBy,
+    });
+    const mockFrom = vi.fn().mockReturnValue({
+      where: mockWhere,
+    });
+    const mockSelect = vi.fn().mockReturnValue({
+      from: mockFrom,
+    });
+
+    const mockDb = {
+      insert: mockInsert,
+      select: mockSelect,
+    };
+
+    setDb(mockDb as any);
+  });
+
+  afterEach(() => {
+    process.env.DATABASE_URL = originalDatabaseUrl;
+    setDb(null);
   });
 
   it("should create a new session", async () => {
