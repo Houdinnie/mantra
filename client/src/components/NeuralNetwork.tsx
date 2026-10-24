@@ -78,10 +78,8 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     // Animation loop
     const animate = () => {
-      if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
+      // Optimization: Do not reschedule requestAnimationFrame if inactive to avoid wasting CPU/GPU cycles
+      if (!isActive) return;
 
       // Clear canvas
       ctx.fillStyle = "rgba(15, 23, 42, 0.1)";
@@ -157,7 +155,9 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animationRef.current = requestAnimationFrame(animate);
+    if (isActive) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       if (animationRef.current !== null) {
