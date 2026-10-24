@@ -11,10 +11,12 @@ import { generateImage } from "../_core/imageGeneration";
 
 export const imageRouter = router({
   generate: protectedProcedure
-    .input(z.object({
-      prompt: z.string().min(1).max(1000),
-      originalImageUrl: z.string().url().optional(),
-    }))
+    .input(
+      z.object({
+        prompt: z.string().min(1).max(1000),
+        originalImageUrl: z.string().url().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       try {
@@ -28,7 +30,8 @@ export const imageRouter = router({
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "Image generation failed",
+          message:
+            error instanceof Error ? error.message : "Image generation failed",
         });
       }
     }),

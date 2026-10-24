@@ -2,12 +2,22 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
-  getMemory, setMemory, getAllMemory, deleteMemory,
-  createNote, getNotes, updateNote, deleteNote,
+  getMemory,
+  setMemory,
+  getAllMemory,
+  deleteMemory,
+  createNote,
+  getNotes,
+  updateNote,
+  deleteNote,
 } from "../db";
 import { callClaude } from "../_core/anthropic";
 import { getUserStats, getUserSessions } from "../db";
-import { getSleepInsights, getBrainLearned, isBrainOnline } from "../_core/neurolinked";
+import {
+  getSleepInsights,
+  getBrainLearned,
+  isBrainOnline,
+} from "../_core/neurolinked";
 
 // ─────────────────────────────────────────────────────────────
 // Memory router
@@ -22,7 +32,9 @@ export const memoryRouter = router({
     }),
 
   set: protectedProcedure
-    .input(z.object({ key: z.string().min(1).max(255), value: z.string().max(5000) }))
+    .input(
+      z.object({ key: z.string().min(1).max(255), value: z.string().max(5000) })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       await setMemory(ctx.user.id, input.key, input.value);
@@ -49,11 +61,13 @@ export const memoryRouter = router({
 
 export const notesRouter = router({
   create: protectedProcedure
-    .input(z.object({
-      title: z.string().min(1).max(255),
-      content: z.string(),
-      tags: z.array(z.string()).default([]),
-    }))
+    .input(
+      z.object({
+        title: z.string().min(1).max(255),
+        content: z.string(),
+        tags: z.array(z.string()).default([]),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       await createNote(ctx.user.id, input.title, input.content, input.tags);
@@ -68,13 +82,15 @@ export const notesRouter = router({
     }),
 
   update: protectedProcedure
-    .input(z.object({
-      id: z.number(),
-      title: z.string().optional(),
-      content: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-      pinned: z.boolean().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        content: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        pinned: z.boolean().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       const { id, ...updates } = input;
@@ -92,18 +108,28 @@ export const notesRouter = router({
 
   /** AI-powered note from conversation: summarise and save */
   saveFromChat: protectedProcedure
-    .input(z.object({
-      sessionId: z.string(),
-      instructions: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        sessionId: z.string(),
+        instructions: z.string().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       const { getSessionMessages } = await import("../db");
       const messages = await getSessionMessages(input.sessionId, 100);
-      if (!messages.length) throw new TRPCError({ code: "NOT_FOUND", message: "No messages in session" });
+      if (!messages.length)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No messages in session",
+        });
 
-      const transcript = messages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
-      const instructions = input.instructions ?? "Extract the key decisions, action items, and insights from this conversation.";
+      const transcript = messages
+        .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n\n");
+      const instructions =
+        input.instructions ??
+        "Extract the key decisions, action items, and insights from this conversation.";
 
       const summary = await callClaude({
         system: `You summarise conversations into concise, well-structured markdown notes. 
@@ -123,7 +149,9 @@ Output format:
 [any other relevant info]
 
 Be extremely concise. No filler.`,
-        messages: [{ role: "user", content: `${instructions}\n\n---\n\n${transcript}` }],
+        messages: [
+          { role: "user", content: `${instructions}\n\n---\n\n${transcript}` },
+        ],
         maxTokens: 1024,
       });
 
@@ -165,7 +193,7 @@ export const digestRouter = router({
       const stats = await getUserStats(ctx.user.id);
       const memories = await getAllMemory(ctx.user.id);
       const memoryCtx = memories.length
-        ? `Known facts about this user:\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}`
+        ? `Known facts about this user:\n${memories.map(m => `- ${m.key}: ${m.value}`).join("\n")}`
         : "";
 
       // Pull NeuroLinked sleep insights if brain is online
@@ -177,10 +205,13 @@ export const digestRouter = router({
           getBrainLearned(),
         ]);
         if (sleepInsights.length) {
-          brainInsightCtx = `\nNeuroLinked sleep consolidation surfaced these insights while you were away:\n${sleepInsights.map((i) => `- [${i.kind}] ${i.title}: ${i.body}`).join("\n")}`;
+          brainInsightCtx = `\nNeuroLinked sleep consolidation surfaced these insights while you were away:\n${sleepInsights.map(i => `- [${i.kind}] ${i.title}: ${i.body}`).join("\n")}`;
         }
         if (learned?.top_concepts?.length) {
-          brainInsightCtx += `\nTop concepts your brain has been processing: ${learned.top_concepts.slice(0, 5).map((c) => c.concept).join(", ")}`;
+          brainInsightCtx += `\nTop concepts your brain has been processing: ${learned.top_concepts
+            .slice(0, 5)
+            .map(c => c.concept)
+            .join(", ")}`;
         }
       }
 
@@ -227,7 +258,9 @@ export const brainRouter = router({
   }),
 
   recall: protectedProcedure
-    .input(z.object({ query: z.string().min(1), limit: z.number().default(10) }))
+    .input(
+      z.object({ query: z.string().min(1), limit: z.number().default(10) })
+    )
     .query(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       return recallMemories(input.query, input.limit);
@@ -256,12 +289,14 @@ import { sendToBrain } from "../_core/neurolinked";
 
 export const voiceRouter = router({
   transcribe: protectedProcedure
-    .input(z.object({
-      audioUrl: z.string().url(),
-      language: z.string().optional(),
-      prompt: z.string().optional(),
-      sessionId: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        audioUrl: z.string().url(),
+        language: z.string().optional(),
+        prompt: z.string().optional(),
+        sessionId: z.string().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
       const result = await transcribeAudio({
@@ -286,13 +321,18 @@ import { notifyOwner } from "../_core/notification";
 
 export const notificationRouter = router({
   send: protectedProcedure
-    .input(z.object({
-      title: z.string().min(1),
-      content: z.string().min(1),
-    }))
+    .input(
+      z.object({
+        title: z.string().min(1),
+        content: z.string().min(1),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const ok = await notifyOwner({ title: input.title, content: input.content });
+      const ok = await notifyOwner({
+        title: input.title,
+        content: input.content,
+      });
       return { ok };
     }),
 });

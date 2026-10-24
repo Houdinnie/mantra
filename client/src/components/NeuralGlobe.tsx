@@ -17,30 +17,108 @@ interface Node {
 }
 
 const PILAR_NODES: Node[] = [
-  { id: "nomad", position: [2, 1, 0], color: "#00f5ff", label: "Nomad Navigator", size: 0.15, connections: ["tax", "legal", "wellness"] },
-  { id: "tax", position: [-1, 2, 1], color: "#ffd700", label: "Tax Strategist", size: 0.12, connections: ["nomad", "wealth"] },
-  { id: "legal", position: [-2, 0, 1], color: "#ff00aa", label: "Legal Guardian", size: 0.12, connections: ["nomad", "wellness"] },
-  { id: "wellness", position: [1, -1, 2], color: "#00ffcc", label: "Wellness Director", size: 0.11, connections: ["nomad", "luxury"] },
-  { id: "luxury", position: [0, 2, -1], color: "#ff6600", label: "Luxury Optimiser", size: 0.1, connections: ["wellness", "wealth"] },
-  { id: "wealth", position: [-1, -2, 0], color: "#8844ff", label: "Wealth Architect", size: 0.1, connections: ["tax", "luxury"] },
-  { id: "compliance", position: [0, 0, -2], color: "#00ff88", label: "Compliance Auditor", size: 0.09, connections: ["legal", "tax"] },
+  {
+    id: "nomad",
+    position: [2, 1, 0],
+    color: "#00f5ff",
+    label: "Nomad Navigator",
+    size: 0.15,
+    connections: ["tax", "legal", "wellness"],
+  },
+  {
+    id: "tax",
+    position: [-1, 2, 1],
+    color: "#ffd700",
+    label: "Tax Strategist",
+    size: 0.12,
+    connections: ["nomad", "wealth"],
+  },
+  {
+    id: "legal",
+    position: [-2, 0, 1],
+    color: "#ff00aa",
+    label: "Legal Guardian",
+    size: 0.12,
+    connections: ["nomad", "wellness"],
+  },
+  {
+    id: "wellness",
+    position: [1, -1, 2],
+    color: "#00ffcc",
+    label: "Wellness Director",
+    size: 0.11,
+    connections: ["nomad", "luxury"],
+  },
+  {
+    id: "luxury",
+    position: [0, 2, -1],
+    color: "#ff6600",
+    label: "Luxury Optimiser",
+    size: 0.1,
+    connections: ["wellness", "wealth"],
+  },
+  {
+    id: "wealth",
+    position: [-1, -2, 0],
+    color: "#8844ff",
+    label: "Wealth Architect",
+    size: 0.1,
+    connections: ["tax", "luxury"],
+  },
+  {
+    id: "compliance",
+    position: [0, 0, -2],
+    color: "#00ff88",
+    label: "Compliance Auditor",
+    size: 0.09,
+    connections: ["legal", "tax"],
+  },
 ];
 
 const CITIES = [
-  { name: "Lisbon", position: [-0.4, 0.3, 1.2] as [number, number, number], color: "#00f5ff" },
-  { name: "Dubai", position: [1.5, 0.8, 0.5] as [number, number, number], color: "#ffd700" },
-  { name: "Singapore", position: [2.0, -0.2, -0.8] as [number, number, number], color: "#ff00aa" },
-  { name: "Prague", position: [0.5, 0.9, 1.5] as [number, number, number], color: "#00ffcc" },
-  { name: "UAE", position: [1.2, 0.5, 0.2] as [number, number, number], color: "#ff6600" },
+  {
+    name: "Lisbon",
+    position: [-0.4, 0.3, 1.2] as [number, number, number],
+    color: "#00f5ff",
+  },
+  {
+    name: "Dubai",
+    position: [1.5, 0.8, 0.5] as [number, number, number],
+    color: "#ffd700",
+  },
+  {
+    name: "Singapore",
+    position: [2.0, -0.2, -0.8] as [number, number, number],
+    color: "#ff00aa",
+  },
+  {
+    name: "Prague",
+    position: [0.5, 0.9, 1.5] as [number, number, number],
+    color: "#00ffcc",
+  },
+  {
+    name: "UAE",
+    position: [1.2, 0.5, 0.2] as [number, number, number],
+    color: "#ff6600",
+  },
 ];
 
-function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolean; onHover: (id: string | null) => void }) {
+function GlowingNode({
+  node,
+  isActive,
+  onHover,
+}: {
+  node: Node;
+  isActive: boolean;
+  onHover: (id: string | null) => void;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  useFrame((state) => {
+  useFrame(state => {
     if (meshRef.current) {
-      const pulse = Math.sin(state.clock.elapsedTime * 2 + node.position[0]) * 0.1;
+      const pulse =
+        Math.sin(state.clock.elapsedTime * 2 + node.position[0]) * 0.1;
       meshRef.current.scale.setScalar(1 + pulse * (isActive ? 0.3 : 0.1));
     }
   });
@@ -50,8 +128,14 @@ function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolea
       <Sphere
         ref={meshRef}
         args={[node.size, 32, 32]}
-        onPointerOver={() => { setHovered(true); onHover(node.id); }}
-        onPointerOut={() => { setHovered(false); onHover(null); }}
+        onPointerOver={() => {
+          setHovered(true);
+          onHover(node.id);
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          onHover(null);
+        }}
       >
         <meshStandardMaterial
           color={node.color}
@@ -65,7 +149,9 @@ function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolea
         <Html distanceFactor={4}>
           <div className="bg-black/90 border border-cyan-500/50 rounded-lg px-3 py-2 text-xs text-white whitespace-nowrap backdrop-blur-xl">
             <div className="font-bold text-cyan-400">{node.label}</div>
-            <div className="text-[10px] text-gray-400">{node.connections.length} connections</div>
+            <div className="text-[10px] text-gray-400">
+              {node.connections.length} connections
+            </div>
           </div>
         </Html>
       )}
@@ -73,11 +159,17 @@ function GlowingNode({ node, isActive, onHover }: { node: Node; isActive: boolea
   );
 }
 
-function ConnectionLines({ nodes, activeId }: { nodes: Node[]; activeId: string | null }) {
+function ConnectionLines({
+  nodes,
+  activeId,
+}: {
+  nodes: Node[];
+  activeId: string | null;
+}) {
   const lines: JSX.Element[] = [];
-  
-  nodes.forEach((node) => {
-    node.connections.forEach((connId) => {
+
+  nodes.forEach(node => {
+    node.connections.forEach(connId => {
       const target = nodes.find(n => n.id === connId);
       if (target) {
         const isActive = activeId === node.id || activeId === connId;
@@ -98,7 +190,13 @@ function ConnectionLines({ nodes, activeId }: { nodes: Node[]; activeId: string 
   return <>{lines}</>;
 }
 
-function GlobeCity({ city, isActive }: { city: typeof CITIES[0]; isActive: boolean }) {
+function GlobeCity({
+  city,
+  isActive,
+}: {
+  city: (typeof CITIES)[0];
+  isActive: boolean;
+}) {
   return (
     <group position={city.position}>
       <Sphere args={[0.03, 16, 16]}>
@@ -115,7 +213,7 @@ function GlobeCity({ city, isActive }: { city: typeof CITIES[0]; isActive: boole
 function ParticleField() {
   const count = 200;
   const mesh = useRef<THREE.Points>(null);
-  
+
   const [positions] = useState(() => {
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -129,7 +227,7 @@ function ParticleField() {
     return pos;
   });
 
-  useFrame((state) => {
+  useFrame(state => {
     if (mesh.current) {
       mesh.current.rotation.y = state.clock.elapsedTime * 0.05;
     }
@@ -150,7 +248,11 @@ function ParticleField() {
   );
 }
 
-export default function NeuralGlobe({ activePillar }: { activePillar?: string }) {
+export default function NeuralGlobe({
+  activePillar,
+}: {
+  activePillar?: string;
+}) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
@@ -158,8 +260,12 @@ export default function NeuralGlobe({ activePillar }: { activePillar?: string })
       <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
         <ambientLight intensity={0.3} />
         <pointLight position={[10, 10, 10]} intensity={1} />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#ff00aa" />
-        
+        <pointLight
+          position={[-10, -10, -10]}
+          intensity={0.5}
+          color="#ff00aa"
+        />
+
         {/* Main globe */}
         <Sphere args={[2, 64, 64]}>
           <meshStandardMaterial
@@ -174,11 +280,16 @@ export default function NeuralGlobe({ activePillar }: { activePillar?: string })
 
         {/* Grid lines */}
         <Sphere args={[2.05, 32, 32]}>
-          <meshBasicMaterial color="#00f5ff" wireframe transparent opacity={0.1} />
+          <meshBasicMaterial
+            color="#00f5ff"
+            wireframe
+            transparent
+            opacity={0.1}
+          />
         </Sphere>
 
         {/* Pillar nodes */}
-        {PILAR_NODES.map((node) => (
+        {PILAR_NODES.map(node => (
           <GlowingNode
             key={node.id}
             node={node}
@@ -191,8 +302,12 @@ export default function NeuralGlobe({ activePillar }: { activePillar?: string })
         <ConnectionLines nodes={PILAR_NODES} activeId={hoveredId} />
 
         {/* City markers */}
-        {CITIES.map((city) => (
-          <GlobeCity key={city.name} city={city} isActive={Math.random() > 0.7} />
+        {CITIES.map(city => (
+          <GlobeCity
+            key={city.name}
+            city={city}
+            isActive={Math.random() > 0.7}
+          />
         ))}
 
         {/* Particles */}
