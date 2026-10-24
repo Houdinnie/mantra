@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -34,6 +35,48 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+
+    // Set up chainable, non-thenable mock database
+    const mockDb = {
+      insert: vi.fn().mockImplementation(() => {
+        return {
+          values: vi.fn().mockResolvedValue([{ insertId: 1 }])
+        };
+      }),
+      select: vi.fn().mockImplementation(() => {
+        const queryBuilder = {
+          from: vi.fn().mockImplementation(() => {
+            const fromBuilder = {
+              where: vi.fn().mockImplementation(() => {
+                const whereBuilder = {
+                  orderBy: vi.fn().mockImplementation(() => {
+                    const orderByBuilder = {
+                      limit: vi.fn().mockResolvedValue([])
+                    };
+                    return Object.assign(Promise.resolve([]), orderByBuilder, {
+                      then: (onfulfilled: any) => Promise.resolve([]).then(onfulfilled)
+                    });
+                  })
+                };
+                return Object.assign(Promise.resolve([]), whereBuilder, {
+                  then: (onfulfilled: any) => Promise.resolve([]).then(onfulfilled)
+                });
+              })
+            };
+            return Object.assign(Promise.resolve([]), fromBuilder, {
+              then: (onfulfilled: any) => Promise.resolve([]).then(onfulfilled)
+            });
+          })
+        };
+        return queryBuilder;
+      })
+    };
+
+    setDb(mockDb as any);
+  });
+
+  afterEach(() => {
+    setDb(null);
   });
 
   it("should create a new session", async () => {
