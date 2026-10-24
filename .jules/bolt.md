@@ -1,0 +1,3 @@
+## 2025-05-18 - HTML5 Canvas Batching and Offscreen Texture Caching
+**Learning:** In canvas animation loops rendering 60+ objects per frame at 60 FPS, invoking `createRadialGradient` and individual `stroke()` calls inside item iteration loops causes significant canvas state overhead and garbage collection pressure. Batching paths using `moveTo()`/`arc()` into a single `stroke()`/`fill()` call and drawing pre-rendered offscreen radial gradients reduces draw calls from O(E + N) to O(1).
+**Action:** Always pre-render static/radial textures to offscreen canvases and batch vector paths before calling `stroke()` or `fill()` in 60 FPS animation loops.
