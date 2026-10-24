@@ -5,6 +5,13 @@ interface NeuralNetworkProps {
   compact?: boolean;
 }
 
+/**
+ * Optimized NeuralNetwork canvas component.
+ * Performance Optimizations:
+ * 1. Pre-renders the pulse gradient sprite onto an off-screen canvas once to avoid allocating radial gradients
+ *    and color stops on every animation frame (O(1) memory allocation per frame).
+ * 2. Batches edge line path commands into a single `beginPath()` and `stroke()` call to drastically reduce draw calls.
+ */
 export default function NeuralNetwork({ isActive, compact = false }: NeuralNetworkProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -29,6 +36,23 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     const width = rect.width;
     const height = rect.height;
+
+    // Pre-render pulse dot sprite onto off-screen canvas
+    const pulseSprite = document.createElement("canvas");
+    pulseSprite.width = 16;
+    pulseSprite.height = 16;
+    const pCtx = pulseSprite.getContext("2d");
+    if (pCtx) {
+      const gradient = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+      gradient.addColorStop(0, "rgba(34, 197, 94, 0.8)");
+      gradient.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
+      gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
+
+      pCtx.fillStyle = gradient;
+      pCtx.beginPath();
+      pCtx.arc(8, 8, 8, 0, Math.PI * 2);
+      pCtx.fill();
+    }
 
     // Initialize neural network structure
     const layers = compact ? [3, 5, 5, 3] : [4, 6, 6, 4];
@@ -89,7 +113,11 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // 1. Update positions and batch-draw edge lines
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -99,32 +127,27 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         const fromNode = state.nodes[edge.from];
         const toNode = state.nodes[edge.to];
 
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
+
+      // 2. Draw pre-rendered pulse sprite along edges
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+
         if (!fromNode || !toNode) return;
 
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
-
-        // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
         const pulseY = fromNode.y + (toNode.y - fromNode.y) * edge.progress;
 
-        const gradient = ctx.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, 8);
-        gradient.addColorStop(0, "rgba(34, 197, 94, 0.8)");
-        gradient.addColorStop(0.5, "rgba(34, 197, 94, 0.4)");
-        gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(pulseX, pulseY, 8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.drawImage(pulseSprite, pulseX - 8, pulseY - 8);
       });
 
-      // Update and draw nodes
+      // 3. Update and draw nodes
       state.nodes.forEach((node) => {
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
@@ -164,7 +187,7 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isActive]);
+  }, [isActive, compact]);
 
   return (
     <canvas
