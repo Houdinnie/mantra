@@ -4,9 +4,9 @@ import { protectedProcedure, router } from "../_core/trpc";
 import {
   getMemory, setMemory, getAllMemory, deleteMemory,
   createNote, getNotes, updateNote, deleteNote,
+  getUserStats, getUserSessions,
 } from "../db";
 import { callClaude } from "../_core/anthropic";
-import { getUserStats, getUserSessions } from "../db";
 import { getSleepInsights, getBrainLearned, isBrainOnline } from "../_core/neurolinked";
 
 // ─────────────────────────────────────────────────────────────
@@ -214,7 +214,6 @@ Generate the briefing. If brain insights were provided, surface the most importa
 import {
   readBrainState,
   getBrainInsights,
-  getBrainLearned,
   recallMemories,
   saveBrain,
   getFullBrainContext,
