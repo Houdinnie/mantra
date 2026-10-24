@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { chatRouter } from "./chat";
 import type { TrpcContext } from "../_core/context";
+import { setDb } from "../db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -34,6 +35,31 @@ describe("chat router", () => {
 
   beforeEach(() => {
     ctx = createAuthContext();
+
+    // The query builder mock is a thenable (can be awaited)
+    const builderMock: any = {
+      values: vi.fn().mockImplementation(() => builderMock),
+      from: vi.fn().mockImplementation(() => builderMock),
+      where: vi.fn().mockImplementation(() => builderMock),
+      orderBy: vi.fn().mockImplementation(() => builderMock),
+      limit: vi.fn().mockImplementation(() => builderMock),
+      then: vi.fn().mockImplementation((onfulfilled) => {
+        return Promise.resolve([]).then(onfulfilled);
+      })
+    };
+
+    // The database mock itself is NOT a thenable to prevent the async getDb()
+    // function from automatically resolving/unwrapping it prematurely.
+    const dbMock: any = {
+      insert: vi.fn().mockImplementation(() => builderMock),
+      select: vi.fn().mockImplementation(() => builderMock),
+    };
+
+    setDb(dbMock as any);
+  });
+
+  afterEach(() => {
+    setDb(null);
   });
 
   it("should create a new session", async () => {
