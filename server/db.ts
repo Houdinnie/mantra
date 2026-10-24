@@ -5,6 +5,10 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+export function setDb(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try { _db = drizzle(process.env.DATABASE_URL); }
@@ -98,14 +102,29 @@ export async function getSessionMessages(sessionId: string, limit = 200) {
   return db.select().from(chatMessages).where(eq(chatMessages.sessionId, sessionId)).orderBy(asc(chatMessages.createdAt)).limit(limit);
 }
 
+/**
+ * Optimized user stats calculation using SQL aggregates.
+ * Replaces in-memory aggregation of all user sessions.
+ * Impact: O(N) -> O(1) data transfer and memory usage.
+ */
 export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return { totalSessions: 0, totalMessages: 0, lastActive: null };
-  const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
-  const totalSessions = sessions.length;
-  const totalMessages = sessions.reduce((acc, s) => acc + (s.messageCount ?? 0), 0);
-  const lastActive = sessions.length > 0 ? sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt : null;
-  return { totalSessions, totalMessages, lastActive };
+
+  const [result] = await db
+    .select({
+      totalSessions: sql<number>`count(${chatSessions.id})`,
+      totalMessages: sql<number>`sum(${chatSessions.messageCount})`,
+      lastActive: sql<Date | null>`max(${chatSessions.updatedAt})`,
+    })
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId));
+
+  return {
+    totalSessions: Number(result.totalSessions || 0),
+    totalMessages: Number(result.totalMessages || 0),
+    lastActive: result.lastActive ? new Date(result.lastActive) : null,
+  };
 }
 
 // ── Memory ────────────────────────────────────────────────────────
