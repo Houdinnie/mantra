@@ -76,12 +76,15 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
     stateRef.current = { nodes, edges };
 
-    // Animation loop
+    /**
+     * Bolt Optimization Rationale:
+     * 1. Pause animation loop when `isActive` is false to eliminate idle CPU/GPU consumption.
+     * 2. Batch line drawing into a single path per frame (1 stroke call for all edges instead of E stroke calls).
+     * 3. Batch node cores into 1 fill call and outlines into 1 stroke call, reducing context overhead.
+     */
     const animate = () => {
-      if (!isActive) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
+      // Early exit if component is inactive: avoids scheduling unnecessary requestAnimationFrame loops
+      if (!isActive) return;
 
       // Clear canvas
       ctx.fillStyle = "rgba(15, 23, 42, 0.1)";
@@ -89,7 +92,21 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
 
       const state = stateRef.current;
 
-      // Update and draw edges
+      // Batch edge connections into a single path
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.edges.forEach((edge) => {
+        const fromNode = state.nodes[edge.from];
+        const toNode = state.nodes[edge.to];
+        if (fromNode && toNode) {
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+        }
+      });
+      ctx.stroke();
+
+      // Update and draw pulse gradients along edges
       state.edges.forEach((edge) => {
         edge.progress += edge.speed;
         if (edge.progress > 1) {
@@ -100,14 +117,6 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         const toNode = state.nodes[edge.to];
 
         if (!fromNode || !toNode) return;
-
-        // Draw edge line
-        ctx.strokeStyle = "rgba(100, 116, 139, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.stroke();
 
         // Draw pulse along edge
         const pulseX = fromNode.x + (toNode.x - fromNode.x) * edge.progress;
@@ -129,7 +138,7 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         node.pulse += 0.02;
         node.halo = Math.sin(node.pulse) * 0.5 + 0.5;
 
-        // Draw halo
+        // Draw halo gradient per node
         const haloRadius = 6 + node.halo * 4;
         const haloGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloRadius);
         haloGradient.addColorStop(0, `rgba(34, 197, 94, ${0.3 * node.halo})`);
@@ -139,25 +148,33 @@ export default function NeuralNetwork({ isActive, compact = false }: NeuralNetwo
         ctx.beginPath();
         ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        // Draw node core
-        ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw node outline
-        ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
       });
+
+      // Batch node cores (1 fill call)
+      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 3, node.y);
+        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+      });
+      ctx.fill();
+
+      // Batch node outlines (1 stroke call)
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      state.nodes.forEach((node) => {
+        ctx.moveTo(node.x + 4, node.y);
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+      });
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animationRef.current = requestAnimationFrame(animate);
+    if (isActive) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       if (animationRef.current !== null) {
